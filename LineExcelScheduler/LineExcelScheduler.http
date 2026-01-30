@@ -1,0 +1,6 @@
+@LineExcelScheduler_HostAddress = http://localhost:5038
+
+GET {{LineExcelScheduler_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

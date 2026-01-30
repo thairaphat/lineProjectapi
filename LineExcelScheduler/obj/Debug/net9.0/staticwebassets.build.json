@@ -1,0 +1,20 @@
+{
+  "Version": 1,
+  "Hash": "9nCbHis+eq3tlGlizdBr+VLVmJxEOq7OPUNlbBG8C3c=",
+  "Source": "LineExcelScheduler",
+  "BasePath": "_content/LineExcelScheduler",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [
+    {
+      "Name": "LineExcelScheduler\\wwwroot",
+      "Source": "LineExcelScheduler",
+      "ContentRoot": "C:\\Users\\its-thiraphat_t\\lineProjectapi\\LineExcelScheduler\\wwwroot\\",
+      "BasePath": "_content/LineExcelScheduler",
+      "Pattern": "**"
+    }
+  ],
+  "Assets": [],
+  "Endpoints": []
+}
