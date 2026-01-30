@@ -41,6 +41,7 @@ C:\Users\its-thiraphat_t\lineProjectapi\LineExcelScheduler\bin\Debug\net9.0\Micr
 C:\Users\its-thiraphat_t\lineProjectapi\LineExcelScheduler\bin\Debug\net9.0\Microsoft.IO.RecyclableMemoryStream.dll
 C:\Users\its-thiraphat_t\lineProjectapi\LineExcelScheduler\bin\Debug\net9.0\Microsoft.OpenApi.dll
 C:\Users\its-thiraphat_t\lineProjectapi\LineExcelScheduler\bin\Debug\net9.0\Mono.TextTemplating.dll
+C:\Users\its-thiraphat_t\lineProjectapi\LineExcelScheduler\bin\Debug\net9.0\Newtonsoft.Json.dll
 C:\Users\its-thiraphat_t\lineProjectapi\LineExcelScheduler\bin\Debug\net9.0\Npgsql.dll
 C:\Users\its-thiraphat_t\lineProjectapi\LineExcelScheduler\bin\Debug\net9.0\Npgsql.EntityFrameworkCore.PostgreSQL.dll
 C:\Users\its-thiraphat_t\lineProjectapi\LineExcelScheduler\bin\Debug\net9.0\RBush.dll
@@ -127,6 +128,7 @@ C:\Users\its-thiraphat_t\lineProjectapi\LineExcelScheduler\obj\Debug\net9.0\Line
 C:\Users\its-thiraphat_t\lineProjectapi\LineExcelScheduler\obj\Debug\net9.0\LineExcelScheduler.csproj.CoreCompileInputs.cache
 C:\Users\its-thiraphat_t\lineProjectapi\LineExcelScheduler\obj\Debug\net9.0\LineExcelScheduler.MvcApplicationPartsAssemblyInfo.cs
 C:\Users\its-thiraphat_t\lineProjectapi\LineExcelScheduler\obj\Debug\net9.0\LineExcelScheduler.MvcApplicationPartsAssemblyInfo.cache
+C:\Users\its-thiraphat_t\lineProjectapi\LineExcelScheduler\obj\Debug\net9.0\LineExcelScheduler.sourcelink.json
 C:\Users\its-thiraphat_t\lineProjectapi\LineExcelScheduler\obj\Debug\net9.0\scopedcss\bundle\LineExcelScheduler.styles.css
 C:\Users\its-thiraphat_t\lineProjectapi\LineExcelScheduler\obj\Debug\net9.0\staticwebassets.build.json
 C:\Users\its-thiraphat_t\lineProjectapi\LineExcelScheduler\obj\Debug\net9.0\staticwebassets.development.json

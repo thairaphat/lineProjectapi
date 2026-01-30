@@ -7,7 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // 1. ดึง Connection String จากข้อ 1
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-
+builder.Services.AddScoped<LineExcelScheduler.Services.LineMessageService>();
 // 2. บอกให้ระบบใช้ Npgsql (PostgreSQL) สำหรับ .NET 9
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(connectionString));
