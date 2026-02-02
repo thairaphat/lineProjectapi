@@ -45,7 +45,7 @@ namespace LineExcelScheduler.Controllers
         public async Task<IActionResult> GetTeamCapacityFlex(
      [FromQuery] string? keyword = null,
      [FromQuery] string? companyCode = null, // 👈 เพิ่มตัวแปรนี้
-     [FromQuery] int skip = 0)               // 👈 เพิ่ม skip เพื่อรองรับ Pagination
+     [FromQuery] int skip = 0)               
         {
             try
             {

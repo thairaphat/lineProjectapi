@@ -92,7 +92,7 @@ namespace LineExcelScheduler.Services
                             layout = "vertical",
                             contents = new object[] {
                                 new { type = "text", text = $"Team {group.TeamName}", weight = "bold", size = "xl", color = "#111111" },
-                                new { type = "text", text = $"Period: {group.MonthYear}", size = "sm", color = "#666666" }
+                                new { type = "text", text = $"เดือน/ปี: {group.MonthYear}", size = "sm", color = "#666666" }
                             }
                         },
                         body = new
@@ -161,8 +161,8 @@ namespace LineExcelScheduler.Services
                 sql = @"
         WITH teams_page AS (
             SELECT DISTINCT rm.team_id
-            FROM ""Line_projrct"".fact_team_role_mandays rm
-            JOIN ""Line_projrct"".teams t ON t.id = rm.team_id
+            FROM ""Line_oa"".fact_team_role_mandays rm
+            JOIN ""Line_oa"".teams t ON t.id = rm.team_id
             WHERE rm.month = @monthNum
             AND rm.year = @year
             -- 👇 แก้ไข: ถ้า @companyCode เป็นค่าว่างให้ดึงทุกบริษัท ถ้ามีค่าให้กรองตามบริษัทนั้น
@@ -180,8 +180,8 @@ namespace LineExcelScheduler.Services
             fa.target_amount AS TargetAmount,
             fa.actual_amount AS ActualAmount
         FROM teams_page tp
-        JOIN ""Line_projrct"".fact_team_role_mandays rm ON tp.team_id = rm.team_id
-        JOIN ""Line_projrct"".teams t ON t.id = rm.team_id
+        JOIN ""Line_oa"".fact_team_role_mandays rm ON tp.team_id = rm.team_id
+        JOIN ""Line_oa"".teams t ON t.id = rm.team_id
         LEFT JOIN ""Line_projrct"".fact_team_amounts fa 
             ON t.id = fa.team_id AND rm.year = fa.year AND rm.month = fa.month
         WHERE rm.month = @monthNum 
@@ -201,19 +201,20 @@ namespace LineExcelScheduler.Services
             rm.year AS Year,
             fa.target_amount AS TargetAmount,
             fa.actual_amount AS ActualAmount
-        FROM ""Line_projrct"".teams t
-        JOIN ""Line_projrct"".fact_team_role_mandays rm ON t.id = rm.team_id
-        LEFT JOIN ""Line_projrct"".fact_team_amounts fa 
+        FROM ""Line_oa"".teams t
+        JOIN ""LLine_oa"".fact_team_role_mandays rm ON t.id = rm.team_id
+        LEFT JOIN ""Line_oa"".fact_team_amounts fa 
             ON t.id = fa.team_id AND rm.year = fa.year AND rm.month = fa.month
         WHERE (@companyCode = '' OR t.company_code = @companyCode) -- 👈 แก้ไขตรงนี้
-        AND t.team_name ILIKE @kw
+        AND t.team_name = @kw
         AND rm.year = @year
-        ORDER BY rm.month, rm.role_code";
+        ORDER BY rm.month, rm.role_code
+        LIMIT 35";
             }
 
             return await conn.QueryAsync<TeamDataRow>(sql, new
             {
-                kw = $"%{keyword}%",
+                kw = $"{keyword}",
                 companyCode = companyCode ?? "", // ป้องกันค่า Null
                 monthNum,
                 year,

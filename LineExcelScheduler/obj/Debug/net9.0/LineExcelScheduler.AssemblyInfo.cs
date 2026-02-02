@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("LineExcelScheduler")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d564ce7940afede72697792ea36a9636f71be1da")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2f312e7139356606d7ea830612b1371efcd7db4c")]
 [assembly: System.Reflection.AssemblyProductAttribute("LineExcelScheduler")]
 [assembly: System.Reflection.AssemblyTitleAttribute("LineExcelScheduler")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -15,7 +15,7 @@ namespace LineExcelScheduler.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
-            modelBuilder.HasDefaultSchema("Line_projrct"); //
+            modelBuilder.HasDefaultSchema("Line_oa"); //
 
             modelBuilder.Entity<Team>().ToTable("teams");
             modelBuilder.Entity<FactTeamAmount>().ToTable("fact_team_amounts");

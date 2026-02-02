@@ -115,7 +115,7 @@ namespace LineExcelScheduler.Services
         private async Task UpsertBothAmounts(int teamId, int year, int month, decimal target, decimal actual)
         {
             var sql = @"
-                INSERT INTO ""Line_projrct"".""fact_team_amounts"" 
+                INSERT INTO ""Line_oa"".""fact_team_amounts"" 
                     (team_id, year, month, target_amount, actual_amount, created_at) 
                 VALUES 
                     (@t, @y, @m, @target, @actual, CURRENT_TIMESTAMP) 
@@ -141,7 +141,7 @@ namespace LineExcelScheduler.Services
     decimal val)
 {
     var sql = @"
-        INSERT INTO ""Line_projrct"".""fact_team_role_mandays"" 
+        INSERT INTO ""Line_oa"".""fact_team_role_mandays"" 
             (company_code, team_id, year, month, role_code, manday, created_at) 
         VALUES 
             (@c, @t, @y, @m, @r, @v, CURRENT_TIMESTAMP)
