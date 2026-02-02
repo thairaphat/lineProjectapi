@@ -182,7 +182,7 @@ namespace LineExcelScheduler.Services
         FROM teams_page tp
         JOIN ""Line_oa"".fact_team_role_mandays rm ON tp.team_id = rm.team_id
         JOIN ""Line_oa"".teams t ON t.id = rm.team_id
-        LEFT JOIN ""Line_projrct"".fact_team_amounts fa 
+        LEFT JOIN ""Line_oa"".fact_team_amounts fa 
             ON t.id = fa.team_id AND rm.year = fa.year AND rm.month = fa.month
         WHERE rm.month = @monthNum 
         AND rm.year = @year
@@ -202,7 +202,7 @@ namespace LineExcelScheduler.Services
             fa.target_amount AS TargetAmount,
             fa.actual_amount AS ActualAmount
         FROM ""Line_oa"".teams t
-        JOIN ""LLine_oa"".fact_team_role_mandays rm ON t.id = rm.team_id
+        JOIN ""Line_oa"".fact_team_role_mandays rm ON t.id = rm.team_id
         LEFT JOIN ""Line_oa"".fact_team_amounts fa 
             ON t.id = fa.team_id AND rm.year = fa.year AND rm.month = fa.month
         WHERE (@companyCode = '' OR t.company_code = @companyCode) -- 👈 แก้ไขตรงนี้
@@ -279,7 +279,7 @@ namespace LineExcelScheduler.Services
         public async Task<List<string>> GetCompanyListAsync()
         {
             using var conn = new NpgsqlConnection(_connectionString);
-            var sql = @"SELECT DISTINCT company_code FROM ""Line_projrct"".teams WHERE company_code IS NOT NULL ORDER BY company_code";
+            var sql = @"SELECT DISTINCT company_code FROM ""Line_oa"".teams WHERE company_code IS NOT NULL ORDER BY company_code";
             var result = await conn.QueryAsync<string>(sql);
             return result.ToList();
         }
