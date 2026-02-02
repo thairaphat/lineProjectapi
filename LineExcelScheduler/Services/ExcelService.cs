@@ -26,13 +26,14 @@ namespace LineExcelScheduler.Services
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                int year = 2026; 
+                int year = 2026;
 
                 // --- ส่วนที่ 1: จัดการแถบ "รายได้" (อ้างอิงโครงสร้าง: A:บริษัท, B:Team, C:Month, D:Target, E:Actual) ---
                 if (workbook.TryGetWorksheet("รายได้", out var revSheet))
                 {
                     foreach (var row in revSheet.RangeUsed().RowsUsed().Skip(1))
                     {
+                        var companyCode = row.Cell(1).GetValue<string>().Trim();
                         var teamName = row.Cell(2).GetValue<string>().Trim();
                         var monthStr = row.Cell(3).GetValue<string>().Trim(); // คอลัมน์ C: เดือน
                         var targetStr = row.Cell(4).GetValue<string>();      // คอลัมน์ D: ยอดเป้าหมาย
@@ -44,8 +45,8 @@ namespace LineExcelScheduler.Services
                         decimal targetVal = CleanDecimalValue(targetStr);
                         decimal actualVal = CleanDecimalValue(actualStr);
 
-                        int teamId = await GetOrCreateTeamId(teamName);
-                        
+                        int teamId = await GetOrCreateTeamId(teamName, companyCode);
+
                         // บันทึกทั้งสองยอดพร้อมกันในบรรทัดเดียว
                         await UpsertBothAmounts(teamId, year, month, targetVal, actualVal);
                     }
@@ -56,18 +57,23 @@ namespace LineExcelScheduler.Services
                 {
                     foreach (var row in manSheet.RangeUsed().RowsUsed().Skip(1))
                     {
-                        var teamName = row.Cell(2).GetValue<string>().Trim();
-                        var monthStr = row.Cell(3).GetValue<string>().Trim(); // คอลัมน์ C: เดือน
-                        var valStr = row.Cell(4).GetValue<string>();         // คอลัมน์ D: Manday
-                        var role = row.Cell(5).GetValue<string>().Trim();    // คอลัมน์ E: Role (PM, SA, SD)
+                        // ปรับตำแหน่ง Cell ตามลำดับคอลัมน์จริงในไฟล์ Excel
+                        // สมมติว่าไฟล์เป็นแบบ: A:Company, B:Team_ID, C:Role, D:Year, E:Month, F:Manday
+
+                        var companyCode = row.Cell(1).GetValue<string>().Trim(); // A: SICM
+                        var teamName = row.Cell(2).GetValue<string>().Trim(); // B: หยก
+                        var headcountStr = row.Cell(3).GetValue<string>().Trim(); // C: 9
+                        var role = row.Cell(4).GetValue<string>().Trim(); // D: PM
+                        var monthStr = row.Cell(5).GetValue<string>().Trim(); // E: Jan
+                        var valStr = row.Cell(6).GetValue<string>();        // F: 0 / 5
 
                         if (string.IsNullOrEmpty(monthStr) || string.IsNullOrEmpty(teamName)) continue;
 
                         int month = ConvertMonthToNumber(monthStr);
                         decimal val = CleanDecimalValue(valStr);
 
-                        int teamId = await GetOrCreateTeamId(teamName);
-                        await UpsertManday(teamId, year, month, role, val);
+                        int teamId = await GetOrCreateTeamId(teamName, companyCode);
+                        await UpsertManday(companyCode,teamId, year, month, role, val);
                     }
                 }
 
@@ -82,7 +88,7 @@ namespace LineExcelScheduler.Services
             }
         }
 
-        private async Task<int> GetOrCreateTeamId(string teamName)
+        private async Task<int> GetOrCreateTeamId(string teamName, string companyCode)
         {
             if (string.IsNullOrWhiteSpace(teamName)) return 0;
             if (_teamCache!.TryGetValue(teamName, out int teamId)) return teamId;
@@ -95,6 +101,7 @@ namespace LineExcelScheduler.Services
                 {
                     team_name = teamName,
                     team_code = nextCodeNumber.ToString(),
+                    company_code = companyCode,
                     created_at = DateTime.UtcNow
                 };
                 _context.teams.Add(team);
@@ -108,7 +115,7 @@ namespace LineExcelScheduler.Services
         private async Task UpsertBothAmounts(int teamId, int year, int month, decimal target, decimal actual)
         {
             var sql = @"
-                INSERT INTO ""Line_projrct"".""fact_team_amounts"" 
+                INSERT INTO ""Line_oa"".""fact_team_amounts"" 
                     (team_id, year, month, target_amount, actual_amount, created_at) 
                 VALUES 
                     (@t, @y, @m, @target, @actual, CURRENT_TIMESTAMP) 
@@ -125,23 +132,30 @@ namespace LineExcelScheduler.Services
                 new NpgsqlParameter("@actual", actual));
         }
 
-        private async Task UpsertManday(int teamId, int year, int month, string role, decimal val)
-        {
-            var sql = @"
-                INSERT INTO ""Line_projrct"".""fact_team_role_mandays"" 
-                    (company_code, team_id, year, month, role_code, manday, created_at) 
-                VALUES 
-                    ('LINE', @t, @y, @m, @r, @v, CURRENT_TIMESTAMP) 
-                ON CONFLICT (company_code, team_id, role_code, year, month) 
-                DO UPDATE SET manday = EXCLUDED.manday";
+        private async Task UpsertManday(
+    string companyCode,
+    int teamId,
+    int year,
+    int month,
+    string role,
+    decimal val)
+{
+    var sql = @"
+        INSERT INTO ""Line_oa"".""fact_team_role_mandays"" 
+            (company_code, team_id, year, month, role_code, manday, created_at) 
+        VALUES 
+            (@c, @t, @y, @m, @r, @v, CURRENT_TIMESTAMP)
+        ON CONFLICT (company_code, team_id, role_code, year, month) 
+        DO UPDATE SET manday = EXCLUDED.manday";
 
-            await _context.Database.ExecuteSqlRawAsync(sql,
-                new NpgsqlParameter("@t", teamId),
-                new NpgsqlParameter("@y", year),
-                new NpgsqlParameter("@m", month),
-                new NpgsqlParameter("@r", role),
-                new NpgsqlParameter("@v", val));
-        }
+    await _context.Database.ExecuteSqlRawAsync(sql,
+        new NpgsqlParameter("@c", companyCode), // 👈 ตรงนี้
+        new NpgsqlParameter("@t", teamId),
+        new NpgsqlParameter("@y", year),
+        new NpgsqlParameter("@m", month),
+        new NpgsqlParameter("@r", role),
+        new NpgsqlParameter("@v", val));
+}
 
         private int ConvertMonthToNumber(string m)
         {
@@ -150,8 +164,18 @@ namespace LineExcelScheduler.Services
 
             return monthPart switch
             {
-                "jan" => 1, "feb" => 2, "mar" => 3, "apr" => 4, "may" => 5, "jun" => 6,
-                "jul" => 7, "aug" => 8, "sep" => 9, "oct" => 10, "nov" => 11, "dec" => 12,
+                "jan" => 1,
+                "feb" => 2,
+                "mar" => 3,
+                "apr" => 4,
+                "may" => 5,
+                "jun" => 6,
+                "jul" => 7,
+                "aug" => 8,
+                "sep" => 9,
+                "oct" => 10,
+                "nov" => 11,
+                "dec" => 12,
                 _ => 1
             };
         }

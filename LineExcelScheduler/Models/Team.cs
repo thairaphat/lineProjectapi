@@ -11,6 +11,7 @@ namespace LineExcelScheduler.Models
         public string team_code { get; set; } //
         
         public string team_name { get; set; } //
+        public string? company_code { get; set; } //
         
         public int? sort_order { get; set; } //
         
