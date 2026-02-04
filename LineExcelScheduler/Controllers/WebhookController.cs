@@ -28,11 +28,27 @@ namespace LineExcelScheduler.Controllers
 
             var lineEvent = request.Events[0];
             var replyToken = lineEvent.ReplyToken;
+            var userId = lineEvent.Source?.UserId;
+
+            // --- 🟢 ส่วนที่ปรับปรุง: บันทึก ID ทุกครั้งที่มีการติดต่อเข้ามา ---
+            if (!string.IsNullOrEmpty(userId))
+            {
+                // บันทึกลงตาราง line_recipients 
+                // (ใน SaveLineRecipientAsync ของคุณมี ON CONFLICT DO NOTHING อยู่แล้ว จะไม่บันทึกซ้ำแน่นอน)
+                await _lineMessageService.SaveLineRecipientAsync(userId);
+            }
+            // -------------------------------------------------------
+
+            // จัดการ Event ตามประเภท
+            if (lineEvent.Type == "follow")
+            {
+                await SendTextWithQuickReply(replyToken, "สวัสดีครับ! ยินดีต้อนรับสู่ระบบรายงานอัตโนมัติ", CreateMainMenuQuickReply());
+                return Ok();
+            }
 
             if (lineEvent.Type != "message" || lineEvent.Message == null) return Ok();
 
             var keyword = lineEvent.Message.Text;
-            Console.WriteLine($"[Log] User Message: {keyword}");
 
             try
             {
@@ -48,28 +64,66 @@ namespace LineExcelScheduler.Controllers
                 }
                 else
                 {
-                    // Logic ปกติเหมือน Node.js
-                    switch (keyword)
+                    // ใช้ ToLower() เพื่อความยืดหยุ่นในการพิมพ์
+                    var lowerKeyword = keyword.ToLower();
+
+                    // 1. ตรวจสอบว่าเป็นการเลือกบริษัทหรือไม่ (เช่น "บริษัท: ABC")
+                    if (lowerKeyword.StartsWith("บริษัท: "))
                     {
-                        case "เลือกเดือน":
-                            await SendTextWithQuickReply(replyToken, "เลือกเดือนที่ต้องการดูข้อมูล", CreateMonthQuickReply());
-                            break;
-                        case "เลือกทีม":
-                            await SendTextWithQuickReply(replyToken, "เลือกทีมที่ต้องการดูข้อมูล", CreateTeamQuickReply());
-                            break;
-                        case "เมนูหลัก":
-                        case "สวัสดี":
-                        case "hello":
-                            await SendTextWithQuickReply(replyToken, "สวัสดีครับ! ยินดีต้อนรับสู่ระบบ\nเลือกเมนูด้านล่างเพื่อเริ่มต้นใช้งาน", CreateMainMenuQuickReply());
-                            break;
-                        case "ช่วยเหลือ":
-                            await SendTextWithQuickReply(replyToken, "📖 วิธีการใช้งาน:\n1. 📅 เลือกเดือน - ดูข้อมูลตามเดือน\n2. 👥 เลือกทีม - ดูข้อมูลตามทีม", CreateMainMenuQuickReply());
-                            break;
-                        default:
-                            // เริ่มดึงหน้าแรก (skip = 0)
-                            var flexResult = await _lineMessageService.CreateMessageDataAsync(keyword, "", 0);
-                            await ProcessFlexResult(replyToken, flexResult, keyword);
-                            break;
+                        string companyCode = keyword.Replace("บริษัท: ", "").Trim();
+
+                        // 1. ดึงสรุปยอดรวมของบริษัท
+                        var companySummary = await _lineMessageService.CreateTotalSummaryMessageAsync(companyCode);
+
+                        // 2. ดึงรายชื่อทีมในบริษัทนั้น
+                        var teamsInCompany = await _lineMessageService.GetTeamsByCompanyAsync(companyCode);
+
+                        // แก้ไข Warning CS8604 โดยตรวจสอบ null ก่อนส่ง
+                        if (companySummary != null)
+                        {
+                            await ReplyFlexWithCustomQuickReply(replyToken, companySummary, CreateTeamInCompanyQuickReply(teamsInCompany));
+                        }
+                        else
+                        {
+                            await SendTextWithQuickReply(replyToken, $"ไม่พบข้อมูลสำหรับบริษัท {companyCode}", CreateMainMenuQuickReply());
+                        }
+                    }
+                    else
+                    {
+                        switch (lowerKeyword)
+                        {
+                            case "เลือกเดือน":
+                                await SendTextWithQuickReply(replyToken, "เลือกเดือนที่ต้องการดูข้อมูล", CreateMonthQuickReply());
+                                break;
+
+                            case "เลือกทีม":
+                                // เปลี่ยนจากการแสดงทีมทั้งหมด เป็นการแสดงรายชื่อบริษัทก่อน
+                                var companies = await _lineMessageService.GetCompanyListAsync();
+                                await SendTextWithQuickReply(replyToken, "🏢 กรุณาเลือกบริษัทที่ต้องการดูข้อมูล", CreateCompanyQuickReply(companies));
+                                break;
+
+
+                            case "all":
+                                var totalSummary = await _lineMessageService.CreateTotalSummaryMessageAsync("");
+                                await ProcessFlexResult(replyToken, totalSummary, "all");
+                                break;
+
+                            case "เมนูหลัก":
+                            case "สวัสดี":
+                            case "hello":
+                                await SendTextWithQuickReply(replyToken, "สวัสดีครับ! ยินดีต้อนรับสู่ระบบ\nเลือกเมนูด้านล่างเพื่อเริ่มต้นใช้งาน", CreateMainMenuQuickReply());
+                                break;
+
+                            case "ช่วยเหลือ":
+                                await SendTextWithQuickReply(replyToken, "📖 วิธีการใช้งาน:\n1. 📅 เลือกเดือน - ดูตามเดือน\n2. 👥 เลือกทีม - เลือกบริษัทและทีม\n3. 📊 พิมพ์ 'all' - สรุปยอดรวมทั้งหมด", CreateMainMenuQuickReply());
+                                break;
+
+                            default:
+                                // ดึงข้อมูลรายชื่อทีม (กรณีพิมพ์ชื่อทีมตรงๆ) หรือ keyword อื่นๆ
+                                var flexResult = await _lineMessageService.CreateMessageDataAsync(keyword, "", 0);
+                                await ProcessFlexResult(replyToken, flexResult, keyword);
+                                break;
+                        }
                     }
                 }
             }
@@ -211,10 +265,11 @@ namespace LineExcelScheduler.Controllers
         private object CreateMainMenuQuickReply() => new
         {
             items = new[] {
-                new { type = "action", action = new { type = "message", label = "📅 เลือกเดือน", text = "เลือกเดือน" } },
-                new { type = "action", action = new { type = "message", label = "👥 เลือกทีม", text = "เลือกทีม" } },
-                new { type = "action", action = new { type = "message", label = "❓ ช่วยเหลือ", text = "ช่วยเหลือ" } }
-            }
+        new { type = "action", action = new { type = "message", label = "📅 เลือกเดือน", text = "เลือกเดือน" } },
+        new { type = "action", action = new { type = "message", label = "👥 เลือกทีม", text = "เลือกทีม" } },
+        new { type = "action", action = new { type = "message", label = "📊 สรุปทั้งหมด", text = "all" } }, // เพิ่มปุ่มนี้
+        new { type = "action", action = new { type = "message", label = "❓ ช่วยเหลือ", text = "ช่วยเหลือ" } }
+    }
         };
 
         private object CreateMonthQuickReply()
@@ -240,6 +295,30 @@ namespace LineExcelScheduler.Controllers
                 new { type = "action", action = new { type = "message", label = "Project Co", text = "Project Co" } },
                 new { type = "action", action = new { type = "message", label = "🔙 กลับเมนูหลัก", text = "เมนูหลัก" } }
             }
+        };
+
+        private object CreateCompanyQuickReply(List<string> companies) => new
+        {
+            items = companies.Select(c => new
+            {
+                type = "action",
+                action = new { type = "message", label = c, text = $"บริษัท: {c}" }
+            }).Concat(new[] {
+        new { type = "action", action = new { type = "message", label = "🏠 เมนูหลัก", text = "เมนูหลัก" } }
+    }).ToArray()
+        };
+
+        // 2. Quick Reply สำหรับเลือกทีมภายในบริษัทนั้นๆ
+        private object CreateTeamInCompanyQuickReply(List<string> teams) => new
+        {
+            items = teams.Select(t => new
+            {
+                type = "action",
+                action = new { type = "message", label = t, text = t }
+            }).Concat(new[] {
+        new { type = "action", action = new { type = "message", label = "🏢 เปลี่ยนบริษัท", text = "เลือกทีม" } },
+        new { type = "action", action = new { type = "message", label = "🏠 เมนูหลัก", text = "เมนูหลัก" } }
+    }).ToArray()
         };
     }
 }
