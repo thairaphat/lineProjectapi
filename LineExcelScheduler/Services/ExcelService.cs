@@ -36,8 +36,8 @@ namespace LineExcelScheduler.Services
                         var companyCode = row.Cell(1).GetValue<string>().Trim();
                         var teamName = row.Cell(2).GetValue<string>().Trim();
                         var monthStr = row.Cell(3).GetValue<string>().Trim(); // คอลัมน์ C: เดือน
-                        var targetStr = row.Cell(4).GetValue<string>();      // คอลัมน์ D: ยอดเป้าหมาย
-                        var actualStr = row.Cell(5).GetValue<string>();      // คอลัมน์ E: ยอดจริง
+                        var targetStr = row.Cell(5).GetValue<string>();      // คอลัมน์ E: ยอดจริง
+                        var actualStr = row.Cell(4).GetValue<string>();      // คอลัมน์ D: ยอดเป้าหมาย 
 
                         if (string.IsNullOrEmpty(monthStr) || string.IsNullOrEmpty(teamName)) continue;
 
@@ -73,7 +73,7 @@ namespace LineExcelScheduler.Services
                         decimal val = CleanDecimalValue(valStr);
 
                         int teamId = await GetOrCreateTeamId(teamName, companyCode);
-                        await UpsertManday(companyCode,teamId, year, month, role, val);
+                        await UpsertManday(companyCode, teamId, year, month, role, val);
                     }
                 }
 
@@ -112,26 +112,30 @@ namespace LineExcelScheduler.Services
         }
 
         // เมธอดใหม่: บันทึกทั้ง Target และ Actual พร้อมกันเพื่อความแม่นยำ
-        private async Task UpsertBothAmounts(int teamId, int year, int month, decimal target, decimal actual)
+        private async Task UpsertBothAmounts(
+    int teamId,
+    int year,
+    int month,
+    decimal? target,
+    decimal? actual)
         {
             var sql = @"
-                INSERT INTO ""Line_oa"".""fact_team_amounts"" 
-                    (team_id, year, month, target_amount, actual_amount, created_at) 
-                VALUES 
-                    (@t, @y, @m, @target, @actual, CURRENT_TIMESTAMP) 
-                ON CONFLICT (team_id, year, month) 
-                DO UPDATE SET 
-                    target_amount = EXCLUDED.target_amount,
-                    actual_amount = EXCLUDED.actual_amount";
+        INSERT INTO ""Line_oa"".""fact_team_amounts"" 
+            (team_id, year, month, target_amount, actual_amount, created_at) 
+        VALUES 
+            (@t, @y, @m, @target, @actual, CURRENT_TIMESTAMP) 
+        ON CONFLICT (team_id, year, month) 
+        DO UPDATE SET 
+            target_amount = EXCLUDED.target_amount,
+            actual_amount = EXCLUDED.actual_amount";
 
             await _context.Database.ExecuteSqlRawAsync(sql,
                 new NpgsqlParameter("@t", teamId),
                 new NpgsqlParameter("@y", year),
                 new NpgsqlParameter("@m", month),
-                new NpgsqlParameter("@target", target),
-                new NpgsqlParameter("@actual", actual));
+                new NpgsqlParameter("@target", (object?)target ?? DBNull.Value),
+                new NpgsqlParameter("@actual", (object?)actual ?? DBNull.Value));
         }
-
         private async Task UpsertManday(
     string companyCode,
     int teamId,
@@ -139,8 +143,8 @@ namespace LineExcelScheduler.Services
     int month,
     string role,
     decimal val)
-{
-    var sql = @"
+        {
+            var sql = @"
         INSERT INTO ""Line_oa"".""fact_team_role_mandays"" 
             (company_code, team_id, year, month, role_code, manday, created_at) 
         VALUES 
@@ -148,14 +152,14 @@ namespace LineExcelScheduler.Services
         ON CONFLICT (company_code, team_id, role_code, year, month) 
         DO UPDATE SET manday = EXCLUDED.manday";
 
-    await _context.Database.ExecuteSqlRawAsync(sql,
-        new NpgsqlParameter("@c", companyCode), // 👈 ตรงนี้
-        new NpgsqlParameter("@t", teamId),
-        new NpgsqlParameter("@y", year),
-        new NpgsqlParameter("@m", month),
-        new NpgsqlParameter("@r", role),
-        new NpgsqlParameter("@v", val));
-}
+            await _context.Database.ExecuteSqlRawAsync(sql,
+                new NpgsqlParameter("@c", companyCode), // 👈 ตรงนี้
+                new NpgsqlParameter("@t", teamId),
+                new NpgsqlParameter("@y", year),
+                new NpgsqlParameter("@m", month),
+                new NpgsqlParameter("@r", role),
+                new NpgsqlParameter("@v", val));
+        }
 
         private int ConvertMonthToNumber(string m)
         {
