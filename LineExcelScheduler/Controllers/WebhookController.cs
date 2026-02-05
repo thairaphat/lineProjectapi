@@ -92,9 +92,7 @@ namespace LineExcelScheduler.Controllers
                     {
                         switch (lowerKeyword)
                         {
-                            case "เลือกเดือน":
-                                await SendTextWithQuickReply(replyToken, "เลือกเดือนที่ต้องการดูข้อมูล", CreateMonthQuickReply());
-                                break;
+
 
                             case "เลือกทีม":
                                 // เปลี่ยนจากการแสดงทีมทั้งหมด เป็นการแสดงรายชื่อบริษัทก่อน
@@ -104,8 +102,23 @@ namespace LineExcelScheduler.Controllers
 
 
                             case "all":
+                                // 1. ดึงข้อมูลสรุปยอดรวม (Yearly)
                                 var totalSummary = await _lineMessageService.CreateTotalSummaryMessageAsync("");
-                                await ProcessFlexResult(replyToken, totalSummary, "all");
+
+                                if (totalSummary != null)
+                                {
+                                    // 2. ดึงเฉพาะส่วน messages ออกมา (ซึ่งข้างในเป็น Flex Message)
+                                    var flexMessages = ((dynamic)totalSummary).messages;
+
+                                    // 3. ส่งข้อมูลกลับโดยสร้าง Payload ใหม่ที่ไม่มีฟิลด์ quickReply
+                                    var cleanPayload = new
+                                    {
+                                        replyToken = replyToken,
+                                        messages = flexMessages
+                                    };
+
+                                    await PostToLine(cleanPayload);
+                                }
                                 break;
 
                             case "เมนูหลัก":
@@ -115,7 +128,7 @@ namespace LineExcelScheduler.Controllers
                                 break;
 
                             case "ช่วยเหลือ":
-                                await SendTextWithQuickReply(replyToken, "📖 วิธีการใช้งาน:\n1. 📅 เลือกเดือน - ดูตามเดือน\n2. 👥 เลือกทีม - เลือกบริษัทและทีม\n3. 📊 พิมพ์ 'all' - สรุปยอดรวมทั้งหมด", CreateMainMenuQuickReply());
+                                await SendTextWithQuickReply(replyToken, "📖 วิธีการใช้งาน:\n1. 👥 เลือกทีม - เลือกบริษัทและทีม\n3. 📊 พิมพ์ 'all' - สรุปยอดรวมทั้งหมด", CreateMainMenuQuickReply());
                                 break;
 
                             default:
@@ -147,29 +160,34 @@ namespace LineExcelScheduler.Controllers
             var flexData = (dynamic)flexResult;
             int? nextSkip = flexData.nextSkip;
 
-            if (nextSkip.HasValue)
+            // --- 🟢 ส่วนที่ปรับปรุง: ถ้าไม่มีการดูต่อ (Pagination) ให้ส่งแบบไม่มีเมนู ---
+            if (!nextSkip.HasValue)
             {
-                // สร้างปุ่ม Next ใน Quick Reply สำหรับหน้าถัดไป
-                var nextQuickReply = new
+                var flexMessages = flexData.messages;
+                var cleanPayload = new
                 {
-                    items = new[] {
-                        new {
-                            type = "action",
-                            action = new {
-                                type = "message",
-                                label = "➡ ดูข้อมูลถัดไป",
-                                text = $"ดูต่อ:{keyword}:{nextSkip}"
-                            }
-                        },
-                        new { type = "action", action = new { type = "message", label = "🏠 เมนูหลัก", text = "เมนูหลัก" } }
-                    }
+                    replyToken = replyToken,
+                    messages = flexMessages
                 };
-                await ReplyFlexWithCustomQuickReply(replyToken, flexResult, nextQuickReply);
+                await PostToLine(cleanPayload);
             }
             else
             {
-                // ถ้าไม่มีหน้าถัดไป ให้ใช้ Quick Reply เมนูหลักปกติ
-                await ReplyFlexWithQuickReply(replyToken, flexResult);
+                // กรณีมีหน้าถัดไป ให้ยังคงมีปุ่ม "ดูข้อมูลถัดไป"
+                var nextQuickReply = new
+                {
+                    items = new[] {
+                new {
+                    type = "action",
+                    action = new {
+                        type = "message",
+                        label = "➡ ดูข้อมูลถัดไป",
+                        text = $"ดูต่อ:{keyword}:{nextSkip}"
+                    }
+                },
+            }
+                };
+                await ReplyFlexWithCustomQuickReply(replyToken, flexResult, nextQuickReply);
             }
         }
 
@@ -265,7 +283,6 @@ namespace LineExcelScheduler.Controllers
         private object CreateMainMenuQuickReply() => new
         {
             items = new[] {
-        new { type = "action", action = new { type = "message", label = "📅 เลือกเดือน", text = "เลือกเดือน" } },
         new { type = "action", action = new { type = "message", label = "👥 เลือกทีม", text = "เลือกทีม" } },
         new { type = "action", action = new { type = "message", label = "📊 สรุปทั้งหมด", text = "all" } }, // เพิ่มปุ่มนี้
         new { type = "action", action = new { type = "message", label = "❓ ช่วยเหลือ", text = "ช่วยเหลือ" } }
@@ -299,26 +316,52 @@ namespace LineExcelScheduler.Controllers
 
         private object CreateCompanyQuickReply(List<string> companies) => new
         {
-            items = companies.Select(c => new
+            items = companies
+        .Where(c => !string.IsNullOrWhiteSpace(c)) // 🔥 ตัวช่วยชีวิต
+        .Distinct()
+        .Take(12) // LINE limit
+        .Select(c => new
+        {
+            type = "action",
+            action = new
             {
-                type = "action",
-                action = new { type = "message", label = c, text = $"บริษัท: {c}" }
-            }).Concat(new[] {
-        new { type = "action", action = new { type = "message", label = "🏠 เมนูหลัก", text = "เมนูหลัก" } }
-    }).ToArray()
+                type = "message",
+                label = c,
+                text = $"บริษัท: {c}"
+            }
+        })
+        .ToArray()
         };
 
         // 2. Quick Reply สำหรับเลือกทีมภายในบริษัทนั้นๆ
         private object CreateTeamInCompanyQuickReply(List<string> teams) => new
         {
-            items = teams.Select(t => new
+            items = teams
+        .Where(t => !string.IsNullOrWhiteSpace(t))
+        .Distinct()
+        .Take(12)
+        .Select(t => new
+        {
+            type = "action",
+            action = new
             {
+                type = "message",
+                label = t,
+                text = t
+            }
+        })
+        .Concat(new[] {
+            new {
                 type = "action",
-                action = new { type = "message", label = t, text = t }
-            }).Concat(new[] {
-        new { type = "action", action = new { type = "message", label = "🏢 เปลี่ยนบริษัท", text = "เลือกทีม" } },
-        new { type = "action", action = new { type = "message", label = "🏠 เมนูหลัก", text = "เมนูหลัก" } }
-    }).ToArray()
+                action = new {
+                    type = "message",
+                    label = "🏢 เปลี่ยนบริษัท",
+                    text = "เลือกทีม"
+                }
+            }
+        })
+        .ToArray()
         };
+
     }
 }

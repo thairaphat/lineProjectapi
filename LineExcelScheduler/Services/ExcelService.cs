@@ -36,8 +36,8 @@ namespace LineExcelScheduler.Services
                         var companyCode = row.Cell(1).GetValue<string>().Trim();
                         var teamName = row.Cell(2).GetValue<string>().Trim();
                         var monthStr = row.Cell(3).GetValue<string>().Trim(); // คอลัมน์ C: เดือน
-                        var targetStr = row.Cell(4).GetValue<string>();      // คอลัมน์ D: ยอดเป้าหมาย
-                        var actualStr = row.Cell(5).GetValue<string>();      // คอลัมน์ E: ยอดจริง
+                        var targetStr = row.Cell(5).GetValue<string>();      // คอลัมน์ E: ยอดจริง
+                        var actualStr = row.Cell(4).GetValue<string>();      // คอลัมน์ D: ยอดเป้าหมาย 
 
                         if (string.IsNullOrEmpty(monthStr) || string.IsNullOrEmpty(teamName)) continue;
 

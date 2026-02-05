@@ -37,8 +37,8 @@ namespace LineExcelScheduler.Services
     {
         private readonly string _connectionString;
 
-        private readonly string _channelAccessToken = "BQ9QdG9ty3xemX7fl/4JM1MQIK9BwzC9Y9+7riLmCwvpJPE5/+uAyJ7kE5Eif4aySPAcFqotjDaxLl4+I+VVaHRL6PR0hpAOvrTfQgJbaWF2ZITqUf0p8/mrseb49uu3Ne04mWennnml3naZjOCkigdB04t89/1O/w1cDnyilFU="; 
-    private static readonly HttpClient _httpClient = new HttpClient();
+        private readonly string _channelAccessToken = "BQ9QdG9ty3xemX7fl/4JM1MQIK9BwzC9Y9+7riLmCwvpJPE5/+uAyJ7kE5Eif4aySPAcFqotjDaxLl4+I+VVaHRL6PR0hpAOvrTfQgJbaWF2ZITqUf0p8/mrseb49uu3Ne04mWennnml3naZjOCkigdB04t89/1O/w1cDnyilFU=";
+        private static readonly HttpClient _httpClient = new HttpClient();
         public LineMessageService(IConfiguration configuration)
         {
             _connectionString = configuration.GetConnectionString("DefaultConnection")
@@ -128,7 +128,7 @@ namespace LineExcelScheduler.Services
                                     type = "button",
                                     style = "primary",
                                     color = "#1E88E5",
-                                    action = new { type = "uri", label = "View Full Report", uri = "https://drive.google.com/file/d/1ecIy1Jj7x85EL6ZDBL4YGFmP2EGPaHmW/view?usp=sharing" }
+                                    action = new { type = "uri", label = "View Full Report", uri = "https://drive.google.com/file/d/1NkcQV0jlzsCQ521Niz6-6d1XW0mJC4rA/view?usp=sharing" }
                                 }
                             }
                         }
@@ -163,85 +163,127 @@ namespace LineExcelScheduler.Services
             {
                 using var conn = new NpgsqlConnection(_connectionString);
                 int year = 2026;
+                bool isYearlyAll = string.IsNullOrEmpty(companyCode);
 
+                // SQL ดึงข้อมูลพื้นฐาน (เหมือนเดิม)
                 string sql = @"
-                    SELECT 
-                        ((rm.month - 1) / 3) + 1 AS Quarter,
-                        rm.role_code AS RoleCode,
-                        SUM(rm.manday) as TotalManday,
-                        SUM(fa.target_amount) as TotalTarget,
-                        SUM(fa.actual_amount) as TotalActual
-                    FROM ""Line_oa"".fact_team_role_mandays rm
-                    LEFT JOIN ""Line_oa"".fact_team_amounts fa 
-                        ON rm.team_id = fa.team_id AND rm.year = fa.year AND rm.month = fa.month
-                    JOIN ""Line_oa"".teams t ON t.id = rm.team_id
-                    WHERE rm.year = @year
-                    AND (@companyCode = '' OR t.company_code = @companyCode)
-                    GROUP BY Quarter, RoleCode
-                    ORDER BY Quarter, RoleCode";
+            SELECT 
+                ((rm.month - 1) / 3) + 1 AS Quarter,
+                rm.role_code AS RoleCode,
+                rm.month AS Month,
+                SUM(rm.manday) as TotalManday,
+                SUM(fa.target_amount) as TotalTarget,
+                SUM(fa.actual_amount) as TotalActual
+            FROM ""Line_oa"".fact_team_role_mandays rm
+            LEFT JOIN ""Line_oa"".fact_team_amounts fa 
+                ON rm.team_id = fa.team_id AND rm.year = fa.year AND rm.month = fa.month
+            JOIN ""Line_oa"".teams t ON t.id = rm.team_id
+            WHERE rm.year = @year
+            AND (@companyCode = '' OR t.company_code = @companyCode)
+            GROUP BY Quarter, rm.role_code, rm.month
+            ORDER BY Quarter, rm.role_code";
 
                 var rawData = await conn.QueryAsync(sql, new { year, companyCode });
                 var dataList = rawData.ToList();
                 if (!dataList.Any()) return null;
 
-                var quarterGroups = dataList.GroupBy(x => x.quarter);
                 var bodyContents = new List<object>();
 
-                foreach (var group in quarterGroups)
+                if (isYearlyAll)
                 {
-                    var itemsInQuarter = group.ToList();
-                    decimal qTarget = itemsInQuarter.Max(x => (decimal)(x.totaltarget ?? 0));
-                    decimal qActual = itemsInQuarter.Max(x => (decimal)(x.totalactual ?? 0));
-                    decimal qStatus = qActual - qTarget;
+                    // ==========================================
+                    // CASE: สรุปยอดรวมทั้งปี (สำหรับปุ่ม All)
+                    // ==========================================
+                    var roleGroups = dataList.GroupBy(x => x.rolecode)
+                        .Select(g => new { RoleCode = g.Key, TotalMD = g.Sum(x => (decimal)x.totalmanday) });
 
-                    var quarterBoxContents = new List<object> {
-                        new { type = "text", text = $"Quarter {group.Key}", weight = "bold", size = "md", color = "#1E88E5" }
-                    };
-
-                    foreach (var item in itemsInQuarter)
+                    var roleBoxContents = new List<object>();
+                    foreach (var role in roleGroups)
                     {
-                        quarterBoxContents.Add(new
+                        roleBoxContents.Add(new
                         {
                             type = "box",
                             layout = "baseline",
                             margin = "xs",
                             contents = new object[] {
-                                new { type = "text", text = (string)item.rolecode, color = "#666666", size = "xs", flex = 3 },
-                                new { type = "text", text = $"{(decimal)item.totalmanday:N2} MDs", align = "end", weight = "bold", size = "xs", flex = 5 }
-                            }
+                        new { type = "text", text = (string)role.RoleCode, color = "#666666", size = "xs", flex = 3 },
+                        new { type = "text", text = $"{role.TotalMD:N2} MDs", align = "end", weight = "bold", size = "xs", flex = 5 }
+                    }
                         });
                     }
-
-                    quarterBoxContents.Add(new { type = "separator", margin = "sm" });
-                    quarterBoxContents.Add(new
+                    bodyContents.Add(new { type = "box", layout = "vertical", margin = "md", paddingAll = "md", backgroundColor = "#F8F9FA", cornerRadius = "md", contents = roleBoxContents.ToArray() });
+                }
+                else
+                {
+                    // ==========================================
+                    // CASE: แยกตามไตรมาส (สำหรับเลือกบริษัท)
+                    // ==========================================
+                    var quarterGroups = dataList.GroupBy(x => x.quarter);
+                    foreach (var group in quarterGroups)
                     {
-                        type = "box",
-                        layout = "vertical",
-                        margin = "sm",
-                        spacing = "xs",
-                        contents = new object[] {
-                            new { type = "box", layout = "baseline", contents = new object[] {
-                                new { type = "text", text = "Q-Target", size = "xs", color = "#aaaaaa", flex = 3 },
-                                new { type = "text", text = $"{qTarget:N2}", align = "end", size = "xs", weight = "bold", flex = 5, color = "#1E88E5" }
-                            }},
-                            new { type = "box", layout = "baseline", contents = new object[] {
-                                new { type = "text", text = "Q-Actual", size = "xs", color = "#aaaaaa", flex = 3 },
-                                new { type = "text", text = $"{qActual:N2}", align = "end", size = "xs", weight = "bold", flex = 5, color = "#2E7D32" }
-                            }},
-                            new { type = "box", layout = "baseline", contents = new object[] {
-                                new { type = "text", text = "Q-Status", size = "xs", color = "#aaaaaa", flex = 3 },
-                                new { type = "text", text = qStatus.ToString("N2"), align = "end", size = "xs", weight = "bold", flex = 5, color = qStatus < 0 ? "#FF0000" : "#2E7D32" }
-                            }}
-                        }
-                    });
+                        var itemsInQuarter = group.ToList();
+                        // คำนวณยอดเงินรายไตรมาส (ใช้ Max ต่อเดือนเพื่อความแม่นยำ)
+                        var qAmounts = itemsInQuarter.GroupBy(x => x.month)
+                            .Select(mg => new { T = mg.Max(x => (decimal)(x.totaltarget ?? 0)), A = mg.Max(x => (decimal)(x.totalactual ?? 0)) });
 
-                    bodyContents.Add(new { type = "box", layout = "vertical", margin = "md", paddingAll = "md", backgroundColor = "#F8F9FA", cornerRadius = "md", contents = quarterBoxContents.ToArray() });
+                        decimal qTarget = qAmounts.Sum(x => x.T);
+                        decimal qActual = qAmounts.Sum(x => x.A);
+                        decimal qStatus = qActual - qTarget;
+
+                        var quarterBoxContents = new List<object> {
+                    new { type = "text", text = $"Quarter {group.Key}", weight = "bold", size = "md", color = "#1E88E5" }
+                };
+
+                        // แสดง Mandays แยกตาม Role ในไตรมาสนั้น
+                        var roleInQ = itemsInQuarter.GroupBy(x => x.rolecode)
+                            .Select(rg => new { Role = rg.Key, MD = rg.Sum(x => (decimal)x.totalmanday) });
+
+                        foreach (var role in roleInQ)
+                        {
+                            quarterBoxContents.Add(new
+                            {
+                                type = "box",
+                                layout = "baseline",
+                                margin = "xs",
+                                contents = new object[] {
+                            new { type = "text", text = (string)role.Role, color = "#666666", size = "xs", flex = 3 },
+                            new { type = "text", text = $"{role.MD:N2} MDs", align = "end", weight = "bold", size = "xs", flex = 5 }
+                        }
+                            });
+                        }
+
+                        quarterBoxContents.Add(new { type = "separator", margin = "sm" });
+                        quarterBoxContents.Add(new
+                        {
+                            type = "box",
+                            layout = "vertical",
+                            margin = "sm",
+                            spacing = "xs",
+                            contents = new object[] {
+                        new { type = "box", layout = "baseline", contents = new object[] {
+                            new { type = "text", text = "Q-Target", size = "xs", color = "#aaaaaa", flex = 3 },
+                            new { type = "text", text = qTarget.ToString("N2"), align = "end", size = "xs", weight = "bold", flex = 5, color = "#1E88E5" }
+                        }},
+                        new { type = "box", layout = "baseline", contents = new object[] {
+                            new { type = "text", text = "Q-Actual", size = "xs", color = "#aaaaaa", flex = 3 },
+                            new { type = "text", text = qActual.ToString("N2"), align = "end", size = "xs", weight = "bold", flex = 5, color = "#2E7D32" }
+                        }},
+                        new { type = "box", layout = "baseline", contents = new object[] {
+                            new { type = "text", text = "Q-Status", size = "xs", color = "#aaaaaa", flex = 3 },
+                            new { type = "text", text = qStatus.ToString("N2"), align = "end", size = "xs", weight = "bold", flex = 5, color = qStatus < 0 ? "#FF0000" : "#2E7D32" }
+                        }}
+                    }
+                        });
+
+                        bodyContents.Add(new { type = "box", layout = "vertical", margin = "md", paddingAll = "md", backgroundColor = "#F8F9FA", cornerRadius = "md", contents = quarterBoxContents.ToArray() });
+                    }
                 }
 
+                // --- ส่วนท้าย: GRAND TOTAL (แสดงเหมือนกันทั้งสองกรณี) ---
                 bodyContents.Add(new { type = "separator", margin = "xl" });
                 bodyContents.Add(new { type = "text", text = "GRAND TOTAL (YEARLY)", weight = "bold", size = "xs", color = "#aaaaaa", margin = "md" });
 
-                var yearlySummaryData = dataList.GroupBy(x => x.quarter)
+                var yearlySummaryData = dataList.GroupBy(x => x.month)
                     .Select(g => new
                     {
                         T = g.Max(x => (decimal)(x.totaltarget ?? 0)),
@@ -261,12 +303,27 @@ namespace LineExcelScheduler.Services
                 {
                     type = "bubble",
                     size = "mega",
-                    header = new { type = "box", layout = "vertical", contents = new object[] { new { type = "text", text = "Yearly Performance", weight = "bold", size = "xl" }, new { type = "text", text = $"สรุปรายได้ปี: {year}", size = "sm", color = "#666666" } } },
+                    header = new
+                    {
+                        type = "box",
+                        layout = "vertical",
+                        contents = new object[] {
+                new { type = "text", text = isYearlyAll ? "Yearly Summary" : $"Company: {companyCode}", weight = "bold", size = "xl" },
+                new { type = "text", text = $"ปีงบประมาณ: {year}", size = "sm", color = "#666666" }
+            }
+                    },
                     body = new { type = "box", layout = "vertical", spacing = "sm", contents = bodyContents.ToArray() },
-                    footer = new { type = "box", layout = "vertical", contents = new object[] { new { type = "button", style = "primary", color = "#1E88E5", action = new { type = "uri", label = "View Full Report", uri = "https://drive.google.com/file/d/1ecIy1Jj7x85EL6ZDBL4YGFmP2EGPaHmW/view?usp=sharing" } } } }
+                    footer = new
+                    {
+                        type = "box",
+                        layout = "vertical",
+                        contents = new object[] {
+                new { type = "button", style = "primary", color = "#1E88E5", action = new { type = "uri", label = "View Full Report", uri = "https://drive.google.com/file/d/1NkcQV0jlzsCQ521Niz6-6d1XW0mJC4rA/view?usp=sharing" } }
+            }
+                    }
                 };
 
-                return new { messages = new[] { new { type = "flex", altText = "สรุปรายปีแบบครบวงจร", contents = summaryBubble } }, nextSkip = (int?)null };
+                return new { messages = new[] { new { type = "flex", altText = "สรุปภาพรวมรายปี", contents = summaryBubble } }, nextSkip = (int?)null };
             }
             catch (Exception ex) { Console.WriteLine($"Error: {ex.Message}"); return null; }
         }
@@ -288,7 +345,7 @@ namespace LineExcelScheduler.Services
             {
                 sql = @"SELECT t.id AS TeamId, t.team_name AS TeamName, rm.role_code AS RoleCode, rm.manday AS Manday, rm.month AS Month, rm.year AS Year, fa.target_amount AS TargetAmount, fa.actual_amount AS ActualAmount
                         FROM ""Line_oa"".teams t JOIN ""Line_oa"".fact_team_role_mandays rm ON t.id = rm.team_id LEFT JOIN ""Line_oa"".fact_team_amounts fa ON t.id = fa.team_id AND rm.year = fa.year AND rm.month = fa.month
-                        WHERE (@companyCode = '' OR t.company_code = @companyCode) AND t.team_name = @kw AND rm.year = @year ORDER BY rm.month, rm.role_code LIMIT 35";
+                        WHERE (@companyCode = '' OR t.company_code = @companyCode) AND t.team_name = @kw AND rm.year = @year ORDER BY rm.month, rm.role_code";
             }
             return await conn.QueryAsync<TeamDataRow>(sql, new { kw = keyword, companyCode, monthNum, year, take, skip });
         }
