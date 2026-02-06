@@ -83,11 +83,6 @@ namespace LineExcelScheduler.Services
 
                 var carouselContents = groupedData.Select(group =>
                 {
-                    // ❌ เดิม: var totalTarget = group.Roles.Sum(x => x.TargetAmount); 
-                    // ❌ เดิม: var totalActual = group.Roles.Sum(x => x.ActualAmount);
-
-                    // ✅ แก้เป็น: ใช้ Max() เพื่อดึงค่าที่เป็นเป้าก้อนเดียวของทีมในเดือน/ไตรมาสนั้น
-                    // หรือถ้าเป็นรายไตรมาสที่มีหลายเดือน ให้ Group ตามเดือนก่อนแล้วค่อย Sum ครับ
 
                     decimal totalTarget = 0;
                     decimal totalActual = 0;
@@ -148,7 +143,7 @@ namespace LineExcelScheduler.Services
                                                     type = "button",
                                                     style = "primary",
                                                     color = "#1E88E5",
-                                                    action = new { type = "uri", label = "View Full Report", uri = "https://drive.google.com/file/d/1NkcQV0jlzsCQ521Niz6-6d1XW0mJC4rA/view?usp=sharing" }
+                                                    action = new { type = "uri", label = "View Full Report", uri = "https://drive.google.com/file/d/1NkcQV0jlzsCQ521Niz6-6d1XW0mJC4rA/view?usp=drive_link" }
                                                 }
                                             }
                         }
@@ -221,7 +216,7 @@ namespace LineExcelScheduler.Services
                 if (!dataList.Any()) return null;
 
                 var bodyContents = new List<object>();
-
+                string[] roleColors = { "#1E88E5", "#2E7D32", "#EF6C00", "#9C27B0", "#F57C00", "#5E35B1" };
                 if (isYearlyAll)
                 {
                     // ==========================================
@@ -230,6 +225,7 @@ namespace LineExcelScheduler.Services
                     var roleGroups = dataList.GroupBy(x => x.rolecode)
                         .Select(g => new { RoleCode = g.Key, TotalMD = g.Sum(x => (decimal)x.totalmanday) });
 
+                    int idx = 0;
                     var roleBoxContents = new List<object>();
                     foreach (var role in roleGroups)
                     {
@@ -239,10 +235,12 @@ namespace LineExcelScheduler.Services
                             layout = "baseline",
                             margin = "xs",
                             contents = new object[] {
-                        new { type = "text", text = (string)role.RoleCode, color = "#666666", size = "xs", flex = 3 },
-                        new { type = "text", text = $"{role.TotalMD:N2} MDs", align = "end", weight = "bold", size = "xs", flex = 5 }
-                    }
+            // แก้ตรงนี้: ใส่ color ตามลำดับ และปรับ size เป็น sm ให้เหมือนหน้าแรก
+            new { type = "text", text = (string)role.RoleCode, color = roleColors[idx % roleColors.Length], weight = "bold", size = "sm", flex = 3 },
+            new { type = "text", text = $"{role.TotalMD:N2} MDs", align = "end", weight = "bold", size = "sm", flex = 5 }
+        }
                         });
+                        idx++; // นับลำดับสีต่อไป
                     }
                     bodyContents.Add(new { type = "box", layout = "vertical", margin = "md", paddingAll = "md", backgroundColor = "#F8F9FA", cornerRadius = "md", contents = roleBoxContents.ToArray() });
                 }
@@ -271,6 +269,7 @@ namespace LineExcelScheduler.Services
                         var roleInQ = itemsInQuarter.GroupBy(x => x.rolecode)
                             .Select(rg => new { Role = rg.Key, MD = rg.Sum(x => (decimal)x.totalmanday) });
 
+                        int qIdx = 0;
                         foreach (var role in roleInQ)
                         {
                             quarterBoxContents.Add(new
@@ -279,10 +278,12 @@ namespace LineExcelScheduler.Services
                                 layout = "baseline",
                                 margin = "xs",
                                 contents = new object[] {
-                            new { type = "text", text = (string)role.Role, color = "#666666", size = "xs", flex = 3 },
-                            new { type = "text", text = $"{role.MD:N2} MDs", align = "end", weight = "bold", size = "xs", flex = 5 }
-                        }
+            // แก้ตรงนี้: ใส่ color และปรับ size เป็น sm เหมือนกัน
+            new { type = "text", text = (string)role.Role, color = roleColors[qIdx % roleColors.Length], weight = "bold", size = "sm", flex = 3 },
+            new { type = "text", text = $"{role.MD:N2} MDs", align = "end", weight = "bold", size = "sm", flex = 5 }
+        }
                             });
+                            qIdx++; // นับลำดับสีต่อไป
                         }
 
                         quarterBoxContents.Add(new { type = "separator", margin = "sm" });
@@ -353,7 +354,7 @@ namespace LineExcelScheduler.Services
                         type = "box",
                         layout = "vertical",
                         contents = new object[] {
-                new { type = "button", style = "primary", color = "#1E88E5", action = new { type = "uri", label = "View Full Report", uri = "https://drive.google.com/file/d/1NkcQV0jlzsCQ521Niz6-6d1XW0mJC4rA/view?usp=sharing" } }
+                new { type = "button", style = "primary", color = "#1E88E5", action = new { type = "uri", label = "View Full Report", uri = "https://drive.google.com/file/d/1NkcQV0jlzsCQ521Niz6-6d1XW0mJC4rA/view?usp=drive_link" } }
             }
                     }
                 };
