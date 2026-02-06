@@ -58,35 +58,55 @@ namespace LineExcelScheduler.Services
                 bool isMonthSearch = GetMonthNumber(keyword).HasValue;
 
                 var groupedData = dataList
-                    .GroupBy(x => isMonthSearch
-                        ? new { x.TeamId, Period = x.Month.ToString(), x.Year }
-                        : new { x.TeamId, Period = $"Q{x.Quarter}", x.Year })
-                    .Select(g => new GroupedTeamData
-                    {
-                        TeamId = g.Key.TeamId,
-                        TeamName = g.First().TeamName,
-                        MonthYear = isMonthSearch ? $"{keyword}/{g.Key.Year}" : $"{g.Key.Period}/{g.Key.Year}",
-                        Roles = g
-                            .GroupBy(r => r.RoleCode)
-                            .Select(rg => new TeamDataRow
-                            {
-                                RoleCode = rg.Key,
-                                Manday = rg.Sum(x => x.Manday),
-                                // ✅ ใช้ Max เพื่อดึงยอดเงินที่ SUM มาจาก SQL ป้องกันค่าเป็น 0.00
-                                TargetAmount = rg.Max(x => x.TargetAmount),
-                                ActualAmount = rg.Max(x => x.ActualAmount)
-                            }).ToList()
-                    }).ToList();
+                .GroupBy(x => isMonthSearch
+                    ? new { x.TeamId, Period = x.Month.ToString(), x.Year }
+                    : new { x.TeamId, Period = $"Q{x.Quarter}", x.Year }) // ตรงนี้จะรวมเดือน 1,2,3 เข้ามาใน Key เดียวกัน (เช่น Q1)
+                .Select(g => new GroupedTeamData
+                {
+                    TeamId = g.Key.TeamId,
+                    TeamName = g.First().TeamName,
+                    MonthYear = isMonthSearch ? $"{keyword}/{g.Key.Year}" : $"{g.Key.Period}/{g.Key.Year}",
+                    Roles = g
+                        .GroupBy(r => r.RoleCode)
+                        .Select(rg => new TeamDataRow
+                        {
+                            RoleCode = rg.Key,
+                            Manday = rg.Sum(x => x.Manday), // รวม Manday ของทั้ง 3 เดือน
+                            // ✅ แก้ไข: Target/Actual ของ "ไตรมาส" ต้องเกิดจาก "ผลรวมของทั้ง 3 เดือน"
+                            // เราต้อง Group ตามเดือนก่อนเพื่อเอาค่า Max ของแต่ละเดือน แล้วค่อย Sum 3 เดือนเข้าด้วยกัน
+                            TargetAmount = rg.GroupBy(m => m.Month).Sum(m => m.Max(x => x.TargetAmount)),
+                            ActualAmount = rg.GroupBy(m => m.Month).Sum(m => m.Max(x => x.ActualAmount))
+                        }).ToList()
+                }).ToList();
 
                 string[] roleColors = { "#1E88E5", "#2E7D32", "#EF6C00", "#9C27B0", "#F57C00", "#5E35B1" };
 
                 var carouselContents = groupedData.Select(group =>
                 {
-                    // ✅ แก้ไข: ดึงยอดรวมจาก Roles ที่ Group มาแล้ว
-                    var totalTarget = group.Roles.Sum(x => x.TargetAmount);
-                    var totalActual = group.Roles.Sum(x => x.ActualAmount);
+                    // ❌ เดิม: var totalTarget = group.Roles.Sum(x => x.TargetAmount); 
+                    // ❌ เดิม: var totalActual = group.Roles.Sum(x => x.ActualAmount);
 
-                    // ✅ แก้ไขสมการ: Actual - Target (ติดลบสีแดง = ยังไม่ถึงเป้า)
+                    // ✅ แก้เป็น: ใช้ Max() เพื่อดึงค่าที่เป็นเป้าก้อนเดียวของทีมในเดือน/ไตรมาสนั้น
+                    // หรือถ้าเป็นรายไตรมาสที่มีหลายเดือน ให้ Group ตามเดือนก่อนแล้วค่อย Sum ครับ
+
+                    decimal totalTarget = 0;
+                    decimal totalActual = 0;
+
+                    if (isMonthSearch)
+                    {
+                        // ถ้ารายเดือน: ทุก Role ในทีมเดือนนั้นจะมีค่าเท่ากัน ใช้ Max ตัวเดียวจบ
+                        totalTarget = group.Roles.Max(x => x.TargetAmount);
+                        totalActual = group.Roles.Max(x => x.ActualAmount);
+                    }
+                    else
+                    {
+                        // ถ้ารายไตรมาส: ต้องเอายอดสูงสุดของแต่ละเดือนมาบวกกัน (เพราะเป้าไตรมาส = เป้าเดือน 1+2+3)
+                        // เนื่องจากโครงสร้าง GroupedTeamData ของคุณ Roles เก็บยอดที่ Sum มาจาก SQL แล้ว 
+                        // หาก SQL คืนค่ามาถูกต้อง (Target ต่อเดือนต่อทีม) ให้ดึงค่าจาก Role แรกมาตัวเดียวเพื่อป้องกันการบวกซ้ำราย Role
+                        totalTarget = group.Roles.Max(x => x.TargetAmount);
+                        totalActual = group.Roles.Max(x => x.ActualAmount);
+                    }
+
                     var statusValue = totalActual - totalTarget;
 
                     var roleItems = group.Roles.Select((role, index) => (object)new
@@ -94,9 +114,9 @@ namespace LineExcelScheduler.Services
                         type = "box",
                         layout = "baseline",
                         contents = new object[] {
-                            new { type = "text", text = role.RoleCode ?? "N/A", color = roleColors[index % roleColors.Length], flex = 3, size = "sm" },
-                            new { type = "text", text = $"{role.Manday:N2} MDs", align = "end", weight = "bold", flex = 5, size = "sm" }
-                        }
+                                            new { type = "text", text = role.RoleCode ?? "N/A", color = roleColors[index % roleColors.Length], flex = 3, size = "sm" },
+                                            new { type = "text", text = $"{role.Manday:N2} MDs", align = "end", weight = "bold", flex = 5, size = "sm" }
+                                        }
                     }).ToList();
 
                     return new
@@ -108,9 +128,9 @@ namespace LineExcelScheduler.Services
                             type = "box",
                             layout = "vertical",
                             contents = new object[] {
-                                new { type = "text", text = $"Team {group.TeamName}", weight = "bold", size = "xl", color = "#111111" },
-                                new { type = "text", text = $"ช่วงเวลา: {group.MonthYear}", size = "sm", color = "#666666" }
-                            }
+                                                new { type = "text", text = $"Team {group.TeamName}", weight = "bold", size = "xl", color = "#111111" },
+                                                new { type = "text", text = $"ช่วงเวลา: {group.MonthYear}", size = "sm", color = "#666666" }
+                                            }
                         },
                         body = new
                         {
@@ -124,13 +144,13 @@ namespace LineExcelScheduler.Services
                             type = "box",
                             layout = "vertical",
                             contents = new object[] {
-                                new {
-                                    type = "button",
-                                    style = "primary",
-                                    color = "#1E88E5",
-                                    action = new { type = "uri", label = "View Full Report", uri = "https://drive.google.com/file/d/1NkcQV0jlzsCQ521Niz6-6d1XW0mJC4rA/view?usp=sharing" }
-                                }
-                            }
+                                                new {
+                                                    type = "button",
+                                                    style = "primary",
+                                                    color = "#1E88E5",
+                                                    action = new { type = "uri", label = "View Full Report", uri = "https://drive.google.com/file/d/1NkcQV0jlzsCQ521Niz6-6d1XW0mJC4rA/view?usp=sharing" }
+                                                }
+                                            }
                         }
                     };
                 }).Cast<object>().ToList();
@@ -167,21 +187,34 @@ namespace LineExcelScheduler.Services
 
                 // SQL ดึงข้อมูลพื้นฐาน (เหมือนเดิม)
                 string sql = @"
-            SELECT 
-                ((rm.month - 1) / 3) + 1 AS Quarter,
-                rm.role_code AS RoleCode,
-                rm.month AS Month,
-                SUM(rm.manday) as TotalManday,
-                SUM(fa.target_amount) as TotalTarget,
-                SUM(fa.actual_amount) as TotalActual
-            FROM ""Line_oa"".fact_team_role_mandays rm
-            LEFT JOIN ""Line_oa"".fact_team_amounts fa 
-                ON rm.team_id = fa.team_id AND rm.year = fa.year AND rm.month = fa.month
-            JOIN ""Line_oa"".teams t ON t.id = rm.team_id
-            WHERE rm.year = @year
-            AND (@companyCode = '' OR t.company_code = @companyCode)
-            GROUP BY Quarter, rm.role_code, rm.month
-            ORDER BY Quarter, rm.role_code";
+                WITH amount_per_month AS (
+                    SELECT
+                        team_id,
+                        year,
+                        month,
+                        MAX(target_amount) AS target_amount,
+                        MAX(actual_amount) AS actual_amount
+                    FROM ""Line_oa"".fact_team_amounts
+                    WHERE year = @year
+                    GROUP BY team_id, year, month
+                )
+                SELECT 
+                    ((rm.month - 1) / 3) + 1 AS Quarter,
+                    rm.role_code AS RoleCode,
+                    rm.month AS Month,
+                    SUM(rm.manday) AS TotalManday,
+                    SUM(apm.target_amount) AS TotalTarget,
+                    SUM(apm.actual_amount) AS TotalActual
+                FROM ""Line_oa"".fact_team_role_mandays rm
+                JOIN ""Line_oa"".teams t ON t.id = rm.team_id
+                LEFT JOIN amount_per_month apm
+                    ON rm.team_id = apm.team_id
+                AND rm.year = apm.year
+                AND rm.month = apm.month
+                WHERE rm.year = @year
+                AND (@companyCode = '' OR t.company_code = @companyCode)
+                GROUP BY Quarter, rm.role_code, rm.month
+                ORDER BY Quarter, rm.role_code";
 
                 var rawData = await conn.QueryAsync(sql, new { year, companyCode });
                 var dataList = rawData.ToList();
@@ -283,12 +316,14 @@ namespace LineExcelScheduler.Services
                 bodyContents.Add(new { type = "separator", margin = "xl" });
                 bodyContents.Add(new { type = "text", text = "GRAND TOTAL (YEARLY)", weight = "bold", size = "xs", color = "#aaaaaa", margin = "md" });
 
-                var yearlySummaryData = dataList.GroupBy(x => x.month)
-                    .Select(g => new
-                    {
-                        T = g.Max(x => (decimal)(x.totaltarget ?? 0)),
-                        A = g.Max(x => (decimal)(x.totalactual ?? 0))
-                    }).ToList();
+                var yearlySummaryData = dataList
+                .GroupBy(x => new { x.teamid, x.month })
+                .Select(g => new
+                {
+                    T = g.Max(x => (decimal)(x.totaltarget ?? 0)),
+                    A = g.Max(x => (decimal)(x.totalactual ?? 0))
+                })
+                .ToList();
 
                 decimal totalT = yearlySummaryData.Sum(x => x.T);
                 decimal totalA = yearlySummaryData.Sum(x => x.A);
