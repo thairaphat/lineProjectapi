@@ -4201,33 +4201,25 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\its-thiraphat_t\\.nuget\\packages\\": {},
-    "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {},
-    "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder": {}
+    "/home/attaporn_j/.nuget/packages/": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\its-thiraphat_t\\lineProjectapi\\LineExcelScheduler\\LineExcelScheduler.csproj",
+      "projectUniqueName": "/home/attaporn_j/Desktop/work/line/lineProjectapi/LineExcelScheduler/LineExcelScheduler.csproj",
       "projectName": "LineExcelScheduler",
-      "projectPath": "C:\\Users\\its-thiraphat_t\\lineProjectapi\\LineExcelScheduler\\LineExcelScheduler.csproj",
-      "packagesPath": "C:\\Users\\its-thiraphat_t\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\its-thiraphat_t\\lineProjectapi\\LineExcelScheduler\\obj\\",
+      "projectPath": "/home/attaporn_j/Desktop/work/line/lineProjectapi/LineExcelScheduler/LineExcelScheduler.csproj",
+      "packagesPath": "/home/attaporn_j/.nuget/packages/",
+      "outputPath": "/home/attaporn_j/Desktop/work/line/lineProjectapi/LineExcelScheduler/obj/",
       "projectStyle": "PackageReference",
-      "fallbackFolders": [
-        "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages",
-        "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"
-      ],
       "configFilePaths": [
-        "C:\\Users\\its-thiraphat_t\\AppData\\Roaming\\NuGet\\NuGet.Config",
-        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
-        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        "/home/attaporn_j/.nuget/NuGet/NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net9.0"
       ],
       "sources": {
-        "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+        "/usr/lib64/dotnet/library-packs": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
@@ -4246,7 +4238,7 @@
         "auditLevel": "low",
         "auditMode": "direct"
       },
-      "SdkAnalysisLevel": "9.0.200"
+      "SdkAnalysisLevel": "9.0.100"
     },
     "frameworks": {
       "net9.0": {
@@ -4324,7 +4316,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.200/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "/usr/lib64/dotnet/sdk/9.0.113/PortableRuntimeIdentifierGraph.json"
       }
     }
   }
