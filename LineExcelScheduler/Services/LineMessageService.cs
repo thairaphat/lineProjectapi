@@ -83,9 +83,11 @@ namespace LineExcelScheduler.Services
 
                 var carouselContents = groupedData.Select(group =>
                 {
-
+                    string teamNameKeyword = Uri.EscapeDataString(group.TeamName);
                     decimal totalTarget = 0;
                     decimal totalActual = 0;
+
+                    string reportUrl = $"https://e940-183-88-236-116.ngrok-free.app/api/excel/generate-pdf?keyword={teamNameKeyword}";
 
                     if (isMonthSearch)
                     {
@@ -143,7 +145,7 @@ namespace LineExcelScheduler.Services
                                                     type = "button",
                                                     style = "primary",
                                                     color = "#1E88E5",
-                                                    action = new { type = "uri", label = "View Full Report", uri = "https://drive.google.com/file/d/1NkcQV0jlzsCQ521Niz6-6d1XW0mJC4rA/view?usp=drive_link" }
+                                                    action = new { type = "uri", label = "View Full Report", uri = reportUrl }
                                                 }
                                             }
                         }
@@ -354,7 +356,7 @@ namespace LineExcelScheduler.Services
                         type = "box",
                         layout = "vertical",
                         contents = new object[] {
-                new { type = "button", style = "primary", color = "#1E88E5", action = new { type = "uri", label = "View Full Report", uri = "https://drive.google.com/file/d/1NkcQV0jlzsCQ521Niz6-6d1XW0mJC4rA/view?usp=drive_link" } }
+                new { type = "button", style = "primary", color = "#1E88E5", action = new { type = "uri", label = "View Full Report", uri = "https://e940-183-88-236-116.ngrok-free.app/api/excel/generate-pdf?" } }
             }
                     }
                 };
