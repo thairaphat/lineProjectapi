@@ -2,11 +2,12 @@ using DinkToPdf;
 using DinkToPdf.Contracts;
 using Hangfire;
 using Hangfire.PostgreSql;
+using LineExcelScheduler.Data;
+using LineExcelScheduler.Services;
 using Microsoft.EntityFrameworkCore;
+using OneDriveFileAccess;
 using System.Reflection;
 using System.Runtime.Loader;
-using LineExcelScheduler.Services;
-using LineExcelScheduler.Data;
 
 
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
@@ -48,6 +49,7 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddHttpClient(); // ✅ จำเป็นสำหรับ LineMessageService
 builder.Services.AddScoped<LineMessageService>();
 builder.Services.AddScoped<ExcelService>();
+builder.Services.AddScoped<OneDriveGetFileService>();
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(connectionString));
@@ -84,6 +86,13 @@ using (var scope = app.Services.CreateScope())
         new RecurringJobOptions { TimeZone = TimeZoneInfo.Local }
     );
 
+    recurringJobManager.AddOrUpdate<OneDriveGetFileService>(
+        "daily-excel-sharepoint",
+        service => service.GetKeySharepoint(),
+        "0 * * * *", 
+        new RecurringJobOptions { TimeZone = TimeZoneInfo.Local }
+    );
+
     // ตั้งค่าสำหรับ ExcelImportJob ทุกวัน เวลา 00:00 น.
     //recurringJobManager.AddOrUpdate<ExcelImportJob>(
     //    "daily-excel-import",
@@ -92,7 +101,8 @@ using (var scope = app.Services.CreateScope())
     //    new RecurringJobOptions { TimeZone = TimeZoneInfo.Local }
     //);
 
-    //recurringJobManager.Trigger("daily-excel-import"); // รันได้ทันทีเมื่อเปิดบรรทัดนี้แล้วรันใหม่
+     
+    // รันได้ทันทีเมื่อเปิดบรรทัดนี้แล้วรันใหม่
 }
 
 // ✅ 6. เปิดหน้า Dashboard สำหรับตรวจสอบสถานะ (เข้าผ่าน /hangfire)
