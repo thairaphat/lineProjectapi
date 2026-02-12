@@ -23,22 +23,18 @@ namespace LineExcelScheduler.Services
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                // ลบข้อมูลทั้งหมด รวมถึง teams
                 await _context.Database.ExecuteSqlRawAsync(@"DELETE FROM ""Line_oa"".""fact_team_role_mandays""");
                 await _context.Database.ExecuteSqlRawAsync(@"DELETE FROM ""Line_oa"".""fact_team_amounts""");
                 await _context.Database.ExecuteSqlRawAsync(@"DELETE FROM ""Line_oa"".""teams""");
 
-                // รีเซ็ต Sequence ของ ID ให้เริ่มต้นที่ 1 ทุกตาราง
                 await _context.Database.ExecuteSqlRawAsync(@"ALTER SEQUENCE ""Line_oa"".""teams_id_seq"" RESTART WITH 1");
                 await _context.Database.ExecuteSqlRawAsync(@"ALTER SEQUENCE ""Line_oa"".""fact_team_amounts_id_seq"" RESTART WITH 1");
                 await _context.Database.ExecuteSqlRawAsync(@"ALTER SEQUENCE ""Line_oa"".""fact_team_role_mandays_id_seq"" RESTART WITH 1");
 
-                // สร้าง Cache ใหม่เปล่า
                 _teamCache = new Dictionary<string, int>();
 
                 int year = 2026;
 
-                // --- ส่วนที่ 1: จัดการแถบ "รายได้" (Table4) ---
                 if (workbook.TryGetWorksheet("Table4", out var revSheet))
                 {
                     foreach (var row in revSheet.RangeUsed().RowsUsed().Skip(1))
@@ -61,7 +57,6 @@ namespace LineExcelScheduler.Services
                     }
                 }
 
-                // --- ส่วนที่ 2: จัดการแถบ "manday" (Table5) ---
                 if (workbook.TryGetWorksheet("Table5", out var manSheet))
                 {
                     foreach (var row in manSheet.RangeUsed().RowsUsed().Skip(1))

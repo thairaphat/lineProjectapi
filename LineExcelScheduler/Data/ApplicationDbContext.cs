@@ -7,7 +7,6 @@ namespace LineExcelScheduler.Data
     {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
 
-        // ต้องสะกดว่า teams (t ตัวเล็ก) เพื่อให้ตรงกับ ExcelService
         public DbSet<Team> teams { get; set; } 
         public DbSet<FactTeamAmount> fact_team_amounts { get; set; }
         public DbSet<FactTeamRoleManday> fact_team_role_mandays { get; set; }

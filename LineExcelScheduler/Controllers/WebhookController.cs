@@ -30,16 +30,10 @@ namespace LineExcelScheduler.Controllers
             var replyToken = lineEvent.ReplyToken;
             var userId = lineEvent.Source?.UserId;
 
-            // --- 🟢 ส่วนที่ปรับปรุง: บันทึก ID ทุกครั้งที่มีการติดต่อเข้ามา ---
             if (!string.IsNullOrEmpty(userId))
             {
-                // บันทึกลงตาราง line_recipients 
-                // (ใน SaveLineRecipientAsync ของคุณมี ON CONFLICT DO NOTHING อยู่แล้ว จะไม่บันทึกซ้ำแน่นอน)
                 await _lineMessageService.SaveLineRecipientAsync(userId);
             }
-            // -------------------------------------------------------
-
-            // จัดการ Event ตามประเภท
             if (lineEvent.Type == "follow")
             {
                 await SendTextWithQuickReply(replyToken, "สวัสดีครับ! ยินดีต้อนรับสู่ระบบรายงานอัตโนมัติ", CreateMainMenuQuickReply());
@@ -52,7 +46,6 @@ namespace LineExcelScheduler.Controllers
 
             try
             {
-                // ตรวจสอบว่าเป็นคำสั่ง "ดูต่อ" หรือไม่ (Pagination)
                 if (keyword.StartsWith("ดูต่อ:"))
                 {
                     var parts = keyword.Split(':');
@@ -64,21 +57,16 @@ namespace LineExcelScheduler.Controllers
                 }
                 else
                 {
-                    // ใช้ ToLower() เพื่อความยืดหยุ่นในการพิมพ์
                     var lowerKeyword = keyword.ToLower();
 
-                    // 1. ตรวจสอบว่าเป็นการเลือกบริษัทหรือไม่ (เช่น "บริษัท: ABC")
                     if (lowerKeyword.StartsWith("บริษัท: "))
                     {
                         string companyCode = keyword.Replace("บริษัท: ", "").Trim();
 
-                        // 1. ดึงสรุปยอดรวมของบริษัท
                         var companySummary = await _lineMessageService.CreateTotalSummaryMessageAsync(companyCode);
 
-                        // 2. ดึงรายชื่อทีมในบริษัทนั้น
                         var teamsInCompany = await _lineMessageService.GetTeamsByCompanyAsync(companyCode);
 
-                        // แก้ไข Warning CS8604 โดยตรวจสอบ null ก่อนส่ง
                         if (companySummary != null)
                         {
                             await ReplyFlexWithCustomQuickReply(replyToken, companySummary, CreateTeamInCompanyQuickReply(teamsInCompany));
@@ -95,22 +83,18 @@ namespace LineExcelScheduler.Controllers
 
 
                             case "เลือกทีม":
-                                // เปลี่ยนจากการแสดงทีมทั้งหมด เป็นการแสดงรายชื่อบริษัทก่อน
                                 var companies = await _lineMessageService.GetCompanyListAsync();
                                 await SendTextWithQuickReply(replyToken, "🏢 กรุณาเลือกบริษัทที่ต้องการดูข้อมูล", CreateCompanyQuickReply(companies));
                                 break;
 
 
                             case "all":
-                                // 1. ดึงข้อมูลสรุปยอดรวม (Yearly)
                                 var totalSummary = await _lineMessageService.CreateTotalSummaryMessageAsync("");
 
                                 if (totalSummary != null)
                                 {
-                                    // 2. ดึงเฉพาะส่วน messages ออกมา (ซึ่งข้างในเป็น Flex Message)
                                     var flexMessages = ((dynamic)totalSummary).messages;
 
-                                    // 3. ส่งข้อมูลกลับโดยสร้าง Payload ใหม่ที่ไม่มีฟิลด์ quickReply
                                     var cleanPayload = new
                                     {
                                         replyToken = replyToken,
@@ -128,11 +112,10 @@ namespace LineExcelScheduler.Controllers
                                 break;
 
                             case "ช่วยเหลือ":
-                                await SendTextWithQuickReply(replyToken, "📖 วิธีการใช้งาน:\n1. 👥 เลือกทีม - เลือกบริษัทและทีม\n3. 📊 พิมพ์ 'all' - สรุปยอดรวมทั้งหมด", CreateMainMenuQuickReply());
+                                await SendTextWithQuickReply(replyToken, " วิธีการใช้งาน:\n1.  เลือกทีม - เลือกบริษัทและทีม\n3.  พิมพ์ 'all' - สรุปยอดรวมทั้งหมด", CreateMainMenuQuickReply());
                                 break;
 
                             default:
-                                // ดึงข้อมูลรายชื่อทีม (กรณีพิมพ์ชื่อทีมตรงๆ) หรือ keyword อื่นๆ
                                 var flexResult = await _lineMessageService.CreateMessageDataAsync(keyword, "", 0);
                                 await ProcessFlexResult(replyToken, flexResult, keyword);
                                 break;
@@ -147,8 +130,6 @@ namespace LineExcelScheduler.Controllers
 
             return Ok();
         }
-
-        // ฟังก์ชันช่วยจัดการผลลัพธ์จาก Service และเช็คว่าต้องเพิ่มปุ่ม "ดูถัดไป" หรือไม่
         private async Task ProcessFlexResult(string replyToken, object flexResult, string keyword)
         {
             if (flexResult == null)
@@ -160,7 +141,6 @@ namespace LineExcelScheduler.Controllers
             var flexData = (dynamic)flexResult;
             int? nextSkip = flexData.nextSkip;
 
-            // --- 🟢 ส่วนที่ปรับปรุง: ถ้าไม่มีการดูต่อ (Pagination) ให้ส่งแบบไม่มีเมนู ---
             if (!nextSkip.HasValue)
             {
                 var flexMessages = flexData.messages;
@@ -173,7 +153,6 @@ namespace LineExcelScheduler.Controllers
             }
             else
             {
-                // กรณีมีหน้าถัดไป ให้ยังคงมีปุ่ม "ดูข้อมูลถัดไป"
                 var nextQuickReply = new
                 {
                     items = new[] {
@@ -191,28 +170,10 @@ namespace LineExcelScheduler.Controllers
             }
         }
 
-        // private async Task PostToLine(object payload)
-        // {
-        //     var json = JsonConvert.SerializeObject(payload, Formatting.Indented);
-        //     var request = new HttpRequestMessage(HttpMethod.Post, "https://api.line.me/v2/bot/message/reply")
-        //     {
-        //         Content = new StringContent(json, Encoding.UTF8, "application/json")
-        //     };
-        //     request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _channelAccessToken);
-        //     var response = await _httpClient.SendAsync(request);
-
-        //     if (!response.IsSuccessStatusCode)
-        //     {
-        //         var errorBody = await response.Content.ReadAsStringAsync();
-        //         Console.WriteLine($"[LINE ERROR] {errorBody}");
-        //     }
-        // }
-
         private async Task PostToLine(object payload)
         {
             var json = JsonConvert.SerializeObject(payload, Formatting.Indented);
 
-            // 🔍 LOG: Payload ที่จะส่งไป LINE
             Console.WriteLine("========== LINE PAYLOAD ==========");
             Console.WriteLine(json);
             Console.WriteLine("==================================");
@@ -226,14 +187,12 @@ namespace LineExcelScheduler.Controllers
 
             var response = await _httpClient.SendAsync(request);
 
-            // 🔍 LOG: Status code
             Console.WriteLine($"[LINE STATUS] {(int)response.StatusCode} {response.StatusCode}");
 
             if (!response.IsSuccessStatusCode)
             {
                 var errorBody = await response.Content.ReadAsStringAsync();
 
-                // ❌ LOG: Error จาก LINE
                 Console.WriteLine("========== LINE ERROR ==========");
                 Console.WriteLine(errorBody);
                 Console.WriteLine("================================");
@@ -283,9 +242,9 @@ namespace LineExcelScheduler.Controllers
         private object CreateMainMenuQuickReply() => new
         {
             items = new[] {
-        new { type = "action", action = new { type = "message", label = "👥 เลือกทีม", text = "เลือกทีม" } },
-        new { type = "action", action = new { type = "message", label = "📊 สรุปทั้งหมด", text = "all" } }, // เพิ่มปุ่มนี้
-        new { type = "action", action = new { type = "message", label = "❓ ช่วยเหลือ", text = "ช่วยเหลือ" } }
+        new { type = "action", action = new { type = "message", label = " เลือกทีม", text = "เลือกทีม" } },
+        new { type = "action", action = new { type = "message", label = " สรุปทั้งหมด", text = "all" } }, 
+        new { type = "action", action = new { type = "message", label = " ช่วยเหลือ", text = "ช่วยเหลือ" } }
     }
         };
 
@@ -310,16 +269,16 @@ namespace LineExcelScheduler.Controllers
                 new { type = "action", action = new { type = "message", label = "แม็ก", text = "แม็ก" } },
                 new { type = "action", action = new { type = "message", label = "แชมป์", text = "แชมป์" } },
                 new { type = "action", action = new { type = "message", label = "Project Co", text = "Project Co" } },
-                new { type = "action", action = new { type = "message", label = "🔙 กลับเมนูหลัก", text = "เมนูหลัก" } }
+                new { type = "action", action = new { type = "message", label = " กลับเมนูหลัก", text = "เมนูหลัก" } }
             }
         };
 
         private object CreateCompanyQuickReply(List<string> companies) => new
         {
             items = companies
-        .Where(c => !string.IsNullOrWhiteSpace(c)) // 🔥 ตัวช่วยชีวิต
+        .Where(c => !string.IsNullOrWhiteSpace(c)) 
         .Distinct()
-        .Take(12) // LINE limit
+        .Take(12)
         .Select(c => new
         {
             type = "action",
@@ -333,7 +292,6 @@ namespace LineExcelScheduler.Controllers
         .ToArray()
         };
 
-        // 2. Quick Reply สำหรับเลือกทีมภายในบริษัทนั้นๆ
         private object CreateTeamInCompanyQuickReply(List<string> teams) => new
         {
             items = teams
@@ -355,7 +313,7 @@ namespace LineExcelScheduler.Controllers
                 type = "action",
                 action = new {
                     type = "message",
-                    label = "🏢 เปลี่ยนบริษัท",
+                    label = " เปลี่ยนบริษัท",
                     text = "เลือกทีม"
                 }
             }
