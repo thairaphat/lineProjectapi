@@ -30,7 +30,7 @@ namespace LineExcelScheduler.Controllers.CardQuery
         }
 
         [HttpGet("generate-pdf")]
-        public async Task<IActionResult> GeneratePdf([FromQuery] string? keyword = null)
+        public async Task<IActionResult> GeneratePdf([FromQuery] string? teamNameKeyword = null, string? companyCodeKeyword = null)
         {
             try
             {
@@ -48,10 +48,12 @@ namespace LineExcelScheduler.Controllers.CardQuery
                     FROM ""Line_oa"".fact_team_amounts fta 
                     JOIN ""Line_oa"".teams t ON t.id = fta.team_id 
                     JOIN ""Line_oa"".fact_team_role_mandays ftrm ON ftrm.team_id = fta.team_id AND ftrm.MONTH = fta.month
-                    WHERE (@keyword IS NULL OR t.team_name  = @keyword)
+                    WHERE 
+                        (@teamNameKeyword IS NULL OR t.team_name = @teamNameKeyword) AND
+                        (@companyCodeKeyword IS NULL OR t.company_code = @companyCodeKeyword)
                     ORDER BY t.company_code, t.team_name, fta.month";
 
-                var result = await conn.QueryAsync<CardTeamData>(sql, new { keyword });
+                var result = await conn.QueryAsync<CardTeamData>(sql, new { teamNameKeyword , companyCodeKeyword });
                 var dataList = result.ToList();
 
                 var groupedData = dataList
@@ -66,7 +68,7 @@ namespace LineExcelScheduler.Controllers.CardQuery
                     .ToList();
                 var pdfBytes = CreatePdf(groupedData);
 
-                return File(pdfBytes, "application/pdf", $"Report_{keyword}.pdf");
+                return File(pdfBytes, "application/pdf", $"Report.pdf");
             }
             catch (Exception ex)
             {
