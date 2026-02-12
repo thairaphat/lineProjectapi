@@ -39,6 +39,7 @@ namespace LineExcelScheduler.Controllers.CardQuery
                     SELECT 
                         t.company_code as CompanyCode,
                         t.team_name as TeamName,
+                        t.member_count as MemberCount,
                         ftrm.role_code as RoleCode,
                         ftrm.manday as Manday,
                         fta.month as Month,
@@ -54,11 +55,12 @@ namespace LineExcelScheduler.Controllers.CardQuery
                 var dataList = result.ToList();
 
                 var groupedData = dataList
-                    .GroupBy(x => new { x.CompanyCode, x.TeamName })
+                    .GroupBy(x => new { x.CompanyCode, x.TeamName, x.MemberCount })
                     .Select(g => new TeamGroup
                     {
                         CompanyCode = g.Key.CompanyCode,
                         TeamName = g.Key.TeamName,
+                        MemberCount = g.Key.MemberCount,
                         Data = g.ToList()
                     })
                     .ToList();
@@ -230,6 +232,7 @@ namespace LineExcelScheduler.Controllers.CardQuery
                 {
                     var teamName = teamGroup.TeamName;
                     var companyCode = teamGroup.CompanyCode;
+                    var memberCount = teamGroup.MemberCount;
 
                     var roleGroups = teamGroup.Data
                         .GroupBy(x => x.RoleCode)
@@ -264,7 +267,7 @@ namespace LineExcelScheduler.Controllers.CardQuery
                         {
                             htmlBuilder.Append($"<td class='company-cell' rowspan='{totalRows}'>{companyCode}</td>");
                             htmlBuilder.Append($"<td class='team-cell' rowspan='{totalRows}'>{teamName}</td>");
-                            htmlBuilder.Append($"<td class='manday-total-cell' rowspan='{totalRows}'>{grandTotalManday:0.####}</td>");
+                            htmlBuilder.Append($"<td class='manday-total-cell' rowspan='{totalRows}'>{memberCount}</td>");
                             isFirstRow = false;
                         }
 
@@ -372,6 +375,7 @@ namespace LineExcelScheduler.Controllers.CardQuery
         {
             public string CompanyCode { get; set; }
             public string TeamName { get; set; }
+            public int MemberCount { get; set; }
             public string RoleCode { get; set; }
             public decimal Manday { get; set; }
             public int Month { get; set; }
@@ -383,6 +387,7 @@ namespace LineExcelScheduler.Controllers.CardQuery
         {
             public string CompanyCode { get; set; }
             public string TeamName { get; set; }
+            public int MemberCount { get; set; }
             public List<CardTeamData> Data { get; set; }
         }
     }
