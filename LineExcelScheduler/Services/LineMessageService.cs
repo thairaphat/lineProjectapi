@@ -87,7 +87,7 @@ namespace LineExcelScheduler.Services
                     decimal totalTarget = 0;
                     decimal totalActual = 0;
 
-                    string reportUrl = $"https://774a-183-88-236-116.ngrok-free.app/api/excel/generate-pdf?keyword={teamNameKeyword}";
+                    string reportUrl = $"https://774a-183-88-236-116.ngrok-free.app/api/excel/generate-pdf?teamNameKeyword={teamNameKeyword}";
 
                     if (isMonthSearch)
                     {
@@ -337,6 +337,8 @@ namespace LineExcelScheduler.Services
                 bodyContents.Add(new { type = "separator", margin = "sm" });
                 bodyContents.Add(CreateDataRow("Overall Status", totalStatus.ToString("N2"), totalStatus < 0 ? "#FF0000" : "#2E7D32"));
 
+                string reportUrl = $"https://774a-183-88-236-116.ngrok-free.app/api/excel/generate-pdf?companyCodeKeyword={companyCode}";
+
                 var summaryBubble = new
                 {
                     type = "bubble",
@@ -356,7 +358,7 @@ namespace LineExcelScheduler.Services
                         type = "box",
                         layout = "vertical",
                         contents = new object[] {
-                new { type = "button", style = "primary", color = "#1E88E5", action = new { type = "uri", label = "View Full Report", uri = "https://774a-183-88-236-116.ngrok-free.app/api/excel/generate-pdf?" } } 
+                new { type = "button", style = "primary", color = "#1E88E5", action = new { type = "uri", label = "View Full Report",uri = reportUrl} } 
             }
                     }
                 };
