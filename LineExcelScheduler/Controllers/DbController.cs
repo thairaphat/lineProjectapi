@@ -12,11 +12,9 @@ namespace LineExcelScheduler.Controllers
         private readonly ApplicationDbContext _context;
         private readonly LineMessageService _lineMessageService;
 
-        // แก้ไข Constructor ให้รับ LineMessageService เข้ามาตรงๆ
         public DbController(ApplicationDbContext context, LineMessageService lineMessageService)
         {
             _context = context;
-            // ไม่ใช้คำสั่ง new แล้ว แต่รับมาจากระบบ Dependency Injection แทน
             _lineMessageService = lineMessageService;
         }
 
@@ -44,12 +42,11 @@ namespace LineExcelScheduler.Controllers
         [HttpGet("team-capacity-flex")]
         public async Task<IActionResult> GetTeamCapacityFlex(
      [FromQuery] string? keyword = null,
-     [FromQuery] string? companyCode = null, // 👈 เพิ่มตัวแปรนี้
+     [FromQuery] string? companyCode = null,
      [FromQuery] int skip = 0)               
         {
             try
             {
-                // ส่ง keyword, companyCode (ถ้าเป็น null ให้ส่งค่าว่าง), และ skip
                 var flexMessage = await _lineMessageService.CreateMessageDataAsync(
                     keyword ?? "",
                     companyCode ?? "",

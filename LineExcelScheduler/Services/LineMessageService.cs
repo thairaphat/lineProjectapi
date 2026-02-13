@@ -37,12 +37,14 @@ namespace LineExcelScheduler.Services
     {
         private readonly string _connectionString;
 
-        private readonly string _channelAccessToken = "BQ9QdG9ty3xemX7fl/4JM1MQIK9BwzC9Y9+7riLmCwvpJPE5/+uAyJ7kE5Eif4aySPAcFqotjDaxLl4+I+VVaHRL6PR0hpAOvrTfQgJbaWF2ZITqUf0p8/mrseb49uu3Ne04mWennnml3naZjOCkigdB04t89/1O/w1cDnyilFU=";
+        private readonly string _channelAccessToken;
         private static readonly HttpClient _httpClient = new HttpClient();
         public LineMessageService(IConfiguration configuration)
         {
             _connectionString = configuration.GetConnectionString("DefaultConnection")
                                ?? throw new Exception("Database connection string 'DefaultConnection' not found in appsettings.json");
+            _channelAccessToken = configuration["LINE_CHANNEL_ACCESS_TOKEN"] 
+                          ?? throw new Exception("LINE_CHANNEL_ACCESS_TOKEN is not set");
         }
 
         public async Task<object?> CreateMessageDataAsync(string keyword, string companyCode, int skip = 0)
@@ -226,9 +228,9 @@ namespace LineExcelScheduler.Services
                             layout = "baseline",
                             margin = "xs",
                             contents = new object[] {
-            new { type = "text", text = (string)role.RoleCode, color = roleColors[idx % roleColors.Length], weight = "bold", size = "sm", flex = 3 },
-            new { type = "text", text = $"{role.TotalMD:N2} MDs", align = "end", weight = "bold", size = "sm", flex = 5 }
-        }
+                                new { type = "text", text = (string)role.RoleCode, color = roleColors[idx % roleColors.Length], weight = "bold", size = "sm", flex = 3 },
+                                new { type = "text", text = $"{role.TotalMD:N2} MDs", align = "end", weight = "bold", size = "sm", flex = 5 }
+                            }
                         });
                         idx++;
                     }
@@ -263,9 +265,9 @@ namespace LineExcelScheduler.Services
                                 layout = "baseline",
                                 margin = "xs",
                                 contents = new object[] {
-            new { type = "text", text = (string)role.Role, color = roleColors[qIdx % roleColors.Length], weight = "bold", size = "sm", flex = 3 },
-            new { type = "text", text = $"{role.MD:N2} MDs", align = "end", weight = "bold", size = "sm", flex = 5 }
-        }
+                                new { type = "text", text = (string)role.Role, color = roleColors[qIdx % roleColors.Length], weight = "bold", size = "sm", flex = 3 },
+                                new { type = "text", text = $"{role.MD:N2} MDs", align = "end", weight = "bold", size = "sm", flex = 5 }
+                            }
                             });
                             qIdx++;
                         }
@@ -356,16 +358,45 @@ namespace LineExcelScheduler.Services
 
             if (monthNum.HasValue)
             {
-                sql = @"WITH teams_page AS (SELECT DISTINCT rm.team_id FROM ""Line_oa"".fact_team_role_mandays rm JOIN ""Line_oa"".teams t ON t.id = rm.team_id WHERE rm.month = @monthNum AND rm.year = @year AND (@companyCode = '' OR t.company_code = @companyCode) ORDER BY rm.team_id LIMIT @take OFFSET @skip)
-                        SELECT t.id AS TeamId, t.team_name AS TeamName, rm.role_code AS RoleCode, rm.manday AS Manday, rm.month AS Month, rm.year AS Year, fa.target_amount AS TargetAmount, fa.actual_amount AS ActualAmount
-                        FROM teams_page tp JOIN ""Line_oa"".fact_team_role_mandays rm ON tp.team_id = rm.team_id JOIN ""Line_oa"".teams t ON t.id = rm.team_id LEFT JOIN ""Line_oa"".fact_team_amounts fa ON t.id = fa.team_id AND rm.year = fa.year AND rm.month = fa.month
-                        WHERE rm.month = @monthNum AND rm.year = @year ORDER BY t.team_name, rm.role_code";
+                sql = @"
+                WITH teams_page AS (SELECT DISTINCT rm.team_id 
+                FROM ""Line_oa"".fact_team_role_mandays rm
+                    JOIN ""Line_oa"".teams t ON t.id = rm.team_id 
+                    WHERE rm.month = @monthNum AND rm.year = @year 
+                    AND (@companyCode = '' OR t.company_code = @companyCode) 
+                    ORDER BY rm.team_id LIMIT @take OFFSET @skip)
+                SELECT t.id AS TeamId, 
+                    t.team_name AS TeamName, 
+                    rm.role_code AS RoleCode, 
+                    rm.manday AS Manday, 
+                    rm.month AS Month, 
+                    rm.year AS Year, 
+                    fa.target_amount AS TargetAmount, 
+                    fa.actual_amount AS ActualAmount
+                FROM teams_page tp 
+                JOIN ""Line_oa"".fact_team_role_mandays rm ON tp.team_id = rm.team_id 
+                JOIN ""Line_oa"".teams t ON t.id = rm.team_id 
+                LEFT JOIN ""Line_oa"".fact_team_amounts fa ON t.id = fa.team_id 
+                AND rm.year = fa.year AND rm.month = fa.month
+                WHERE rm.month = @monthNum AND rm.year = @year 
+                ORDER BY t.team_name, rm.role_code";
             }
             else
             {
-                sql = @"SELECT t.id AS TeamId, t.team_name AS TeamName, rm.role_code AS RoleCode, rm.manday AS Manday, rm.month AS Month, rm.year AS Year, fa.target_amount AS TargetAmount, fa.actual_amount AS ActualAmount
-                        FROM ""Line_oa"".teams t JOIN ""Line_oa"".fact_team_role_mandays rm ON t.id = rm.team_id LEFT JOIN ""Line_oa"".fact_team_amounts fa ON t.id = fa.team_id AND rm.year = fa.year AND rm.month = fa.month
-                        WHERE (@companyCode = '' OR t.company_code = @companyCode) AND t.team_name = @kw AND rm.year = @year ORDER BY rm.month, rm.role_code";
+                sql = @"SELECT t.id AS TeamId, t.team_name AS TeamName
+                        , rm.role_code AS RoleCode
+                        , rm.manday AS Manday
+                        , rm.month AS Month
+                        , rm.year AS Year
+                        , fa.target_amount AS TargetAmount
+                        ,fa.actual_amount AS ActualAmount
+                     FROM ""Line_oa"".teams t
+                        JOIN ""Line_oa"".fact_team_role_mandays rm ON t.id = rm.team_id 
+                        LEFT JOIN ""Line_oa"".fact_team_amounts fa ON t.id = fa.team_id 
+                        AND rm.year = fa.year AND rm.month = fa.month
+                        WHERE (@companyCode = '' OR t.company_code = @companyCode) 
+                        AND t.team_name = @kw AND rm.year = @year 
+                    ORDER BY rm.month, rm.role_code";
             }
             return await conn.QueryAsync<TeamDataRow>(sql, new { kw = keyword, companyCode, monthNum, year, take, skip });
         }

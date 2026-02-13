@@ -1,5 +1,304 @@
 {
   "Version": 1,
   "ManifestType": "Build",
-  "Endpoints": []
+  "Endpoints": [
+    {
+      "Route": "libwkhtmltox.bz3l4eybx5.dll",
+      "AssetFile": "libwkhtmltox.dll.gz",
+      "Selectors": [
+        {
+          "Name": "Content-Encoding",
+          "Value": "gzip",
+          "Quality": "0.000000084383"
+        }
+      ],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        },
+        {
+          "Name": "Content-Encoding",
+          "Value": "gzip"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "11850723"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "application/octet-stream"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"9C2YfBhG3YNktpFKvt+1k5ruOOXr68zRyJ2b7XcOyrQ=\""
+        },
+        {
+          "Name": "ETag",
+          "Value": "W/\"Z2P8wHB+ygp/jQJJX7WNnJligr0yhXOILYu73mBmbxk=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Thu, 12 Feb 2026 03:17:11 GMT"
+        },
+        {
+          "Name": "Vary",
+          "Value": "Content-Encoding"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "bz3l4eybx5"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-Z2P8wHB+ygp/jQJJX7WNnJligr0yhXOILYu73mBmbxk="
+        },
+        {
+          "Name": "label",
+          "Value": "libwkhtmltox.dll"
+        }
+      ]
+    },
+    {
+      "Route": "libwkhtmltox.bz3l4eybx5.dll",
+      "AssetFile": "libwkhtmltox.dll",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "29765120"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "application/octet-stream"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"Z2P8wHB+ygp/jQJJX7WNnJligr0yhXOILYu73mBmbxk=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Thu, 12 Feb 2026 03:17:11 GMT"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "bz3l4eybx5"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-Z2P8wHB+ygp/jQJJX7WNnJligr0yhXOILYu73mBmbxk="
+        },
+        {
+          "Name": "label",
+          "Value": "libwkhtmltox.dll"
+        }
+      ]
+    },
+    {
+      "Route": "libwkhtmltox.bz3l4eybx5.dll.gz",
+      "AssetFile": "libwkhtmltox.dll.gz",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        },
+        {
+          "Name": "Content-Encoding",
+          "Value": "gzip"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "11850723"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "application/octet-stream"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"9C2YfBhG3YNktpFKvt+1k5ruOOXr68zRyJ2b7XcOyrQ=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Thu, 12 Feb 2026 03:17:11 GMT"
+        },
+        {
+          "Name": "Vary",
+          "Value": "Content-Encoding"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "bz3l4eybx5"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-9C2YfBhG3YNktpFKvt+1k5ruOOXr68zRyJ2b7XcOyrQ="
+        },
+        {
+          "Name": "label",
+          "Value": "libwkhtmltox.dll.gz"
+        }
+      ]
+    },
+    {
+      "Route": "libwkhtmltox.dll",
+      "AssetFile": "libwkhtmltox.dll.gz",
+      "Selectors": [
+        {
+          "Name": "Content-Encoding",
+          "Value": "gzip",
+          "Quality": "0.000000084383"
+        }
+      ],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "no-cache"
+        },
+        {
+          "Name": "Content-Encoding",
+          "Value": "gzip"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "11850723"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "application/octet-stream"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"9C2YfBhG3YNktpFKvt+1k5ruOOXr68zRyJ2b7XcOyrQ=\""
+        },
+        {
+          "Name": "ETag",
+          "Value": "W/\"Z2P8wHB+ygp/jQJJX7WNnJligr0yhXOILYu73mBmbxk=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Thu, 12 Feb 2026 03:17:11 GMT"
+        },
+        {
+          "Name": "Vary",
+          "Value": "Content-Encoding"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-Z2P8wHB+ygp/jQJJX7WNnJligr0yhXOILYu73mBmbxk="
+        }
+      ]
+    },
+    {
+      "Route": "libwkhtmltox.dll",
+      "AssetFile": "libwkhtmltox.dll",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "no-cache"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "29765120"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "application/octet-stream"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"Z2P8wHB+ygp/jQJJX7WNnJligr0yhXOILYu73mBmbxk=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Thu, 12 Feb 2026 03:17:11 GMT"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-Z2P8wHB+ygp/jQJJX7WNnJligr0yhXOILYu73mBmbxk="
+        }
+      ]
+    },
+    {
+      "Route": "libwkhtmltox.dll.gz",
+      "AssetFile": "libwkhtmltox.dll.gz",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "no-cache"
+        },
+        {
+          "Name": "Content-Encoding",
+          "Value": "gzip"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "11850723"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "application/octet-stream"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"9C2YfBhG3YNktpFKvt+1k5ruOOXr68zRyJ2b7XcOyrQ=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Thu, 12 Feb 2026 03:17:11 GMT"
+        },
+        {
+          "Name": "Vary",
+          "Value": "Content-Encoding"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-9C2YfBhG3YNktpFKvt+1k5ruOOXr68zRyJ2b7XcOyrQ="
+        }
+      ]
+    }
+  ]
 }

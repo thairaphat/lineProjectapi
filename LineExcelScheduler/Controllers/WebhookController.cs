@@ -15,10 +15,12 @@ namespace LineExcelScheduler.Controllers
         private readonly string _channelAccessToken;
         private static readonly HttpClient _httpClient = new HttpClient();
 
-        public WebhookController(LineMessageService lineMessageService)
+        public WebhookController(LineMessageService lineMessageService, IConfiguration configuration)
         {
             _lineMessageService = lineMessageService;
-            _channelAccessToken = "BQ9QdG9ty3xemX7fl/4JM1MQIK9BwzC9Y9+7riLmCwvpJPE5/+uAyJ7kE5Eif4aySPAcFqotjDaxLl4+I+VVaHRL6PR0hpAOvrTfQgJbaWF2ZITqUf0p8/mrseb49uu3Ne04mWennnml3naZjOCkigdB04t89/1O/w1cDnyilFU=";
+            _channelAccessToken = Environment.GetEnvironmentVariable("LINE_CHANNEL_ACCESS_TOKEN") 
+                          ?? configuration["LINE_CHANNEL_ACCESS_TOKEN"]
+                          ?? throw new Exception("LINE_CHANNEL_ACCESS_TOKEN is not set");
         }
 
         [HttpPost]
