@@ -18,9 +18,9 @@ namespace LineExcelScheduler.Controllers
         public WebhookController(LineMessageService lineMessageService, IConfiguration configuration)
         {
             _lineMessageService = lineMessageService;
-            _channelAccessToken = Environment.GetEnvironmentVariable("LINE_CHANNEL_ACCESS_TOKEN") 
-                          ?? configuration["LINE_CHANNEL_ACCESS_TOKEN"]
-                          ?? throw new Exception("LINE_CHANNEL_ACCESS_TOKEN is not set");
+            _channelAccessToken = Environment.GetEnvironmentVariable("LINE_CHANNEL_ACCESS_TOKEN")
+                      ?? configuration["LINE:channelAccessToken"]
+                      ?? throw new Exception("LINE channelAccessToken is not set");
         }
 
         [HttpPost]

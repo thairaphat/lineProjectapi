@@ -8,48 +8,49 @@ using Microsoft.EntityFrameworkCore;
 using OneDriveFileAccess;
 using System.Reflection;
 using System.Runtime.Loader;
+using System.Runtime.InteropServices; // เพิ่มสำหรับเช็ค OS
 using DotNetEnv;
+
 DotNetEnv.Env.Load(Path.Combine(Directory.GetCurrentDirectory(), ".env"));
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 var builder = WebApplication.CreateBuilder(args);
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
-var host = Environment.GetEnvironmentVariable("DB_HOST");
-var port = Environment.GetEnvironmentVariable("DB_PORT");
-var db = Environment.GetEnvironmentVariable("DB_NAME");
-var user = Environment.GetEnvironmentVariable("DB_USER");
-var pass = Environment.GetEnvironmentVariable("DB_PASSWORD");
-
+builder.Services.AddHangfire(config =>
+    config.UsePostgreSqlStorage(connectionString)
+);
 
 var context = new CustomAssemblyLoadContext();
-var architectureFolder = (IntPtr.Size == 8) ? "64 bit" : "32 bit";
-builder.Configuration.AddEnvironmentVariables();
-var conn = $"Host={host};Port={port};Database={db};Username={user};Password={pass}";
-var wkHtmlToPdfPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "libwkhtmltox.dll");
+bool isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+string libName = isWindows ? "libwkhtmltox.dll" : "libwkhtmltox.so";
 
-var testToken = builder.Configuration["LINE_CHANNEL_ACCESS_TOKEN"];
-Console.WriteLine($"Check Token: {(string.IsNullOrEmpty(testToken) ? "NOT FOUND" : "FOUND")}");
+// ใน Docker ตัวแปร Directory.GetCurrentDirectory() จะได้ค่า "/app"
+var wkHtmlToPdfPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", libName);
+
 if (!File.Exists(wkHtmlToPdfPath))
 {
-    wkHtmlToPdfPath = Path.Combine(Directory.GetCurrentDirectory(), "libwkhtmltox.dll");
+    wkHtmlToPdfPath = Path.Combine(Directory.GetCurrentDirectory(), libName);
 }
+
+// Log ออกมาดูเพื่อความชัวร์ตอนรัน Docker
+Console.WriteLine($"🔍 Runtime OS: {(isWindows ? "Windows" : "Linux")}");
+Console.WriteLine($"🔍 Looking for library at: {wkHtmlToPdfPath}");
 
 if (File.Exists(wkHtmlToPdfPath))
 {
-    context.LoadUnmanagedLibrary(wkHtmlToPdfPath);
-    Console.WriteLine($" Loaded wkhtmltopdf from: {wkHtmlToPdfPath}");
+    try 
+    {
+        context.LoadUnmanagedLibrary(wkHtmlToPdfPath);
+        Console.WriteLine($" ✅ Successfully loaded: {wkHtmlToPdfPath}");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($" ❌ Load Error ({libName}): {ex.Message}");
+    }
 }
-else
-{
-    Console.WriteLine($" Warning: libwkhtmltox.dll not found. PDF generation will not work.");
-    Console.WriteLine($"   Please download from: https://github.com/rdvojmoc/DinkToPdf/tree/master/v0.12.4/64%20bit");
-    Console.WriteLine($"   And place it in: {Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")}");
-}
-
 builder.Services.AddSingleton(typeof(IConverter), new SynchronizedConverter(new PdfTools()));
-builder.Configuration["ConnectionStrings:DefaultConnection"] = conn;
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-Console.WriteLine($"DB Host: {host}:{port}");
+
 builder.Services.AddControllersWithViews();
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<LineMessageService>();
@@ -59,8 +60,6 @@ builder.Services.AddScoped<OneDriveGetFileService>();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(connectionString));
 
-builder.Services.AddHangfire(config => config
-    .UsePostgreSqlStorage(connectionString));
 builder.Services.AddHangfireServer();
 
 var app = builder.Build();
@@ -73,6 +72,7 @@ if (!Directory.Exists(wwwrootPath))
 }
 
 app.UseStaticFiles();
+
 using (var scope = app.Services.CreateScope())
 {
     var recurringJobManager = scope.ServiceProvider.GetRequiredService<IRecurringJobManager>();
@@ -90,10 +90,9 @@ using (var scope = app.Services.CreateScope())
         "0 * * * *",
         new RecurringJobOptions { TimeZone = TimeZoneInfo.Local }
     );
-
 }
-app.UseHangfireDashboard("/hangfire");
 
+app.UseHangfireDashboard("/hangfire");
 app.MapControllers();
 app.MapControllerRoute(name: "default", pattern: "{controller=Home}/{action=Index}/{id?}");
 

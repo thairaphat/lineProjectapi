@@ -6,7 +6,21 @@ COPY . .
 RUN dotnet publish -c Release -o /app
 
 FROM mcr.microsoft.com/dotnet/aspnet:9.0
+
 WORKDIR /app
+RUN apt-get update && apt-get install -y \
+    libgdiplus \
+    libx11-6 \
+    libxcb1 \
+    libxext6 \
+    libxrender1 \
+    libssl-dev \
+    fontconfig \
+    xfonts-75dpi \
+    xfonts-base \
+    && rm -rf /var/lib/apt/lists/*
 COPY --from=build /app .
+COPY wwwroot/libwkhtmltox.so /app/wwwroot/libwkhtmltox.so
+COPY wwwroot/libwkhtmltox.so /usr/local/lib/libwkhtmltox.so
 EXPOSE 8080
 ENTRYPOINT ["dotnet", "LineExcelScheduler.dll"]

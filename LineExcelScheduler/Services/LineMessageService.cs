@@ -43,8 +43,8 @@ namespace LineExcelScheduler.Services
         {
             _connectionString = configuration.GetConnectionString("DefaultConnection")
                                ?? throw new Exception("Database connection string 'DefaultConnection' not found in appsettings.json");
-            _channelAccessToken = configuration["LINE_CHANNEL_ACCESS_TOKEN"] 
-                          ?? throw new Exception("LINE_CHANNEL_ACCESS_TOKEN is not set");
+            _channelAccessToken = configuration["LINE:channelAccessToken"]
+                ?? throw new Exception("LINE channelAccessToken is not set");
         }
 
         public async Task<object?> CreateMessageDataAsync(string keyword, string companyCode, int skip = 0)
