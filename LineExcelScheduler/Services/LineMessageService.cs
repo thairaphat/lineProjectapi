@@ -43,7 +43,7 @@ namespace LineExcelScheduler.Services
         {
             _connectionString = configuration.GetConnectionString("DefaultConnection")
                                ?? throw new Exception("Database connection string 'DefaultConnection' not found in appsettings.json");
-            _channelAccessToken = configuration["LINE:channelAccessToken"]
+            _channelAccessToken = configuration["LINE_CHANNEL_ACCESS_TOKEN"]
                 ?? throw new Exception("LINE channelAccessToken is not set");
         }
 
@@ -87,7 +87,7 @@ namespace LineExcelScheduler.Services
                     decimal totalTarget = 0;
                     decimal totalActual = 0;
 
-                    string reportUrl = $"https://exploratorily-unmiscible-gayle.ngrok-free.dev/api/excel/generate-pdf?teamNameKeyword={teamNameKeyword}";
+                    string reportUrl = $"https://app-line.softsquaregroup.app/api/excel/generate-pdf?teamNameKeyword={teamNameKeyword}";
 
                     if (isMonthSearch)
                     {
@@ -320,7 +320,7 @@ namespace LineExcelScheduler.Services
                 bodyContents.Add(new { type = "separator", margin = "sm" });
                 bodyContents.Add(CreateDataRow("Overall Amount", totalStatus.ToString("N2"), totalStatus < 0 ? "#FF0000" : "#2E7D32"));
 
-                string reportUrl = $"https://exploratorily-unmiscible-gayle.ngrok-free.dev/api/excel/generate-pdf?companyCodeKeyword={companyCode}";
+                string reportUrl = $"https://app-line.softsquaregroup.app/api/excel/generate-pdf?companyCodeKeyword={companyCode}";
 
                 var summaryBubble = new
                 {

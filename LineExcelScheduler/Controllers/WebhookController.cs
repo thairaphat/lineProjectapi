@@ -19,7 +19,7 @@ namespace LineExcelScheduler.Controllers
         {
             _lineMessageService = lineMessageService;
             _channelAccessToken = Environment.GetEnvironmentVariable("LINE_CHANNEL_ACCESS_TOKEN")
-                      ?? configuration["LINE:channelAccessToken"]
+                      ?? configuration["LINE_CHANNEL_ACCESS_TOKEN"]
                       ?? throw new Exception("LINE channelAccessToken is not set");
         }
 

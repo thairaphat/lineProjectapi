@@ -25,28 +25,21 @@ var context = new CustomAssemblyLoadContext();
 bool isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
 string libName = isWindows ? "libwkhtmltox.dll" : "libwkhtmltox.so";
 
-// ใน Docker ตัวแปร Directory.GetCurrentDirectory() จะได้ค่า "/app"
-var wkHtmlToPdfPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", libName);
+// ใช้ Path เต็มเสมอ
+string wkHtmlToPdfPath = Path.Combine(AppContext.BaseDirectory, "wwwroot", libName);
 
-if (!File.Exists(wkHtmlToPdfPath))
-{
-    wkHtmlToPdfPath = Path.Combine(Directory.GetCurrentDirectory(), libName);
-}
-
-// Log ออกมาดูเพื่อความชัวร์ตอนรัน Docker
-Console.WriteLine($"🔍 Runtime OS: {(isWindows ? "Windows" : "Linux")}");
-Console.WriteLine($"🔍 Looking for library at: {wkHtmlToPdfPath}");
+Console.WriteLine($"🔍 Final Library Search Path: {wkHtmlToPdfPath}");
 
 if (File.Exists(wkHtmlToPdfPath))
 {
     try 
     {
         context.LoadUnmanagedLibrary(wkHtmlToPdfPath);
-        Console.WriteLine($" ✅ Successfully loaded: {wkHtmlToPdfPath}");
+        Console.WriteLine($" ✅ Native Library Loaded Successfully.");
     }
     catch (Exception ex)
     {
-        Console.WriteLine($" ❌ Load Error ({libName}): {ex.Message}");
+        Console.WriteLine($" ❌ Load Error: {ex.Message}");
     }
 }
 builder.Services.AddSingleton(typeof(IConverter), new SynchronizedConverter(new PdfTools()));
