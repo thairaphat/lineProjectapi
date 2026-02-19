@@ -84,7 +84,7 @@ namespace LineExcelScheduler.Controllers
                         {
 
 
-                            case "เลือกทีม":
+                            case "เลือกบริษัท/ทีม":
                                 var companies = await _lineMessageService.GetCompanyListAsync();
                                 await SendTextWithQuickReply(replyToken, "🏢 กรุณาเลือกบริษัทที่ต้องการดูข้อมูล", CreateCompanyQuickReply(companies));
                                 break;
@@ -114,7 +114,7 @@ namespace LineExcelScheduler.Controllers
                                 break;
 
                             case "ช่วยเหลือ":
-                                await SendTextWithQuickReply(replyToken, " วิธีการใช้งาน:\n1.  เลือกทีม - เลือกบริษัทและทีม\n3.  พิมพ์ 'all' - สรุปยอดรวมทั้งหมด", CreateMainMenuQuickReply());
+                                await SendTextWithQuickReply(replyToken, " วิธีการใช้งาน:\n1.  เลือกทีม - เลือกบริษัทและทีม\n2.  พิมพ์ 'all' - สรุปยอดรวมทั้งหมด", CreateMainMenuQuickReply());
                                 break;
 
                             default:
@@ -316,7 +316,7 @@ namespace LineExcelScheduler.Controllers
                 action = new {
                     type = "message",
                     label = " เปลี่ยนบริษัท",
-                    text = "เลือกทีม"
+                    text = "เลือกบริษัท/ทีม"
                 }
             }
         })
