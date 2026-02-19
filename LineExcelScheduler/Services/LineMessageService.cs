@@ -129,7 +129,7 @@ namespace LineExcelScheduler.Services
                             type = "box",
                             layout = "vertical",
                             spacing = "md",
-                            contents = BuildFlexBody(roleItems, totalTarget, totalActual, statusValue, totalActual > totalTarget,group.MonthYear ).ToArray()
+                            contents = BuildFlexBody(roleItems, totalTarget, totalActual, statusValue, totalActual > totalTarget, group.MonthYear).ToArray()
                         },
                         footer = new
                         {
@@ -140,7 +140,7 @@ namespace LineExcelScheduler.Services
                                                     type = "button",
                                                     style = "primary",
                                                     color = "#1E88E5",
-                                                    action = new { type = "uri", label = "View Full Report", uri = reportUrl }
+                                                    action = new { type = "uri", label = "ดูข้อมูลรายเดือน", uri = reportUrl }
                                                 }
                                             }
                         }
@@ -315,10 +315,11 @@ namespace LineExcelScheduler.Services
                 decimal totalA = yearlySummaryData.Sum(x => x.A);
                 decimal totalStatus = totalA - totalT;
 
-                bodyContents.Add(CreateDataRow("Target Amount", totalT.ToString("N2"), "#1E88E5"));
-                bodyContents.Add(CreateDataRow("Actual Amount", totalA.ToString("N2"), "#2E7D32"));
+                bodyContents.Add(CreateDataRow("Target Amount", $"{totalT:N2} ฿", "#1E88E5"));
+                bodyContents.Add(CreateDataRow("Actual Amount", $"{totalA:N2} ฿", "#2E7D32"));
                 bodyContents.Add(new { type = "separator", margin = "sm" });
-                bodyContents.Add(CreateDataRow("Overall Amount", totalStatus.ToString("N2"), totalStatus < 0 ? "#FF0000" : "#2E7D32"));
+                bodyContents.Add(CreateDataRow("Overall Amount", $"{totalStatus:N2} ฿",
+                    totalStatus < 0 ? "#FF0000" : "#2E7D32"));
 
                 string reportUrl = $"https://app-line.softsquaregroup.app/api/excel/generate-pdf?companyCodeKeyword={companyCode}";
 
@@ -340,12 +341,12 @@ namespace LineExcelScheduler.Services
                         type = "box",
                         layout = "vertical",
                         contents = new object[] {
-                new { type = "button", style = "primary", color = "#1E88E5", action = new { type = "uri", label = "View Full Report",uri = reportUrl} } 
+                new { type = "button", style = "primary", color = "#1E88E5", action = new { type = "uri", label = "สรุปภาพรวมรายเดือน", uri = reportUrl} }
             }
                     }
                 };
 
-                return new { messages = new[] { new { type = "flex", altText = "สรุปภาพรวมรายปี", contents = summaryBubble } }, nextSkip = (int?)null };
+                return new { messages = new[] { new { type = "flex", altText = "สรุปภาพรวมรายเดือน", contents = summaryBubble } }, nextSkip = (int?)null };
             }
             catch (Exception ex) { Console.WriteLine($"Error: {ex.Message}"); return null; }
         }
@@ -401,7 +402,7 @@ namespace LineExcelScheduler.Services
             return await conn.QueryAsync<TeamDataRow>(sql, new { kw = keyword, companyCode, monthNum, year, take, skip });
         }
 
-        private List<object> BuildFlexBody(List<object> roleItems, decimal target, decimal actual, decimal remaining, bool isOver,string periodLabel)
+        private List<object> BuildFlexBody(List<object> roleItems, decimal target, decimal actual, decimal remaining, bool isOver, string periodLabel)
         {
             var contents = new List<object>();
             var periodOnly = periodLabel.Split('/')[0];

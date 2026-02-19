@@ -73,14 +73,14 @@ using (var scope = app.Services.CreateScope())
     recurringJobManager.AddOrUpdate<LineMessageService>(
         "friday-all-report-broadcast",
         service => service.SendFridayBroadcastAsync(),
-        "0 9 * * 5",
+        "0 18 * * 5",
         new RecurringJobOptions { TimeZone = TimeZoneInfo.Local }
     );
 
     recurringJobManager.AddOrUpdate<OneDriveGetFileService>(
         "daily-excel-sharepoint",
         service => service.GetKeySharepoint(),
-        "0 * * * *",
+        "*/30 * * * *",
         new RecurringJobOptions { TimeZone = TimeZoneInfo.Local }
     );
 }

@@ -35,7 +35,7 @@ namespace LineExcelScheduler.Services
 
                 int year = 2026;
 
-                if (workbook.TryGetWorksheet("Table4", out var revSheet))
+                if (workbook.TryGetWorksheet("Amount", out var revSheet))
                 {
                     foreach (var row in revSheet.RangeUsed().RowsUsed().Skip(1))
                     {
@@ -57,7 +57,7 @@ namespace LineExcelScheduler.Services
                     }
                 }
 
-                if (workbook.TryGetWorksheet("Table5", out var manSheet))
+                if (workbook.TryGetWorksheet("Capacity", out var manSheet))
                 {
                     foreach (var row in manSheet.RangeUsed().RowsUsed().Skip(1))
                     {
