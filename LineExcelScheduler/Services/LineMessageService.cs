@@ -318,7 +318,7 @@ namespace LineExcelScheduler.Services
                 bodyContents.Add(CreateDataRow("Target Amount", $"{totalT:N2} ฿", "#1E88E5"));
                 bodyContents.Add(CreateDataRow("Actual Amount", $"{totalA:N2} ฿", "#2E7D32"));
                 bodyContents.Add(new { type = "separator", margin = "sm" });
-                bodyContents.Add(CreateDataRow("Overall Amount", $"{totalStatus:N2} ฿",
+                bodyContents.Add(CreateDataRow("Balance", $"{totalStatus:N2} ฿",
                     totalStatus < 0 ? "#FF0000" : "#2E7D32"));
 
                 string reportUrl = $"https://app-line.softsquaregroup.app/api/excel/generate-pdf?companyCodeKeyword={companyCode}";
